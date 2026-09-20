@@ -9,11 +9,12 @@ This repository currently provides:
 - typed environment-based configuration
 - standard-library logging setup
 - PDF, Markdown, and TXT document ingestion with unified metadata
+- configurable document chunking with overlapping windows and metadata preservation
 - pytest and Ruff configuration
 - GitHub Actions quality checks
 
-Chunking, embeddings, vector storage, RAG, and agents are implemented in later
-issues and are intentionally not included yet.
+Embeddings, vector storage, RAG, and agents are implemented in later issues and
+are intentionally not included yet.
 
 ## Development setup
 
@@ -73,6 +74,10 @@ src/enterprise_ai_agent/
     document.py
     exceptions.py
     loaders.py
+  chunking/
+    __init__.py
+    models.py
+    splitter.py
 tests/
 docs/
 ```
