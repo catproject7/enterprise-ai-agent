@@ -1,6 +1,6 @@
 # Architecture
 
-## Current foundation
+## Current implementation
 
 Issue #1 establishes a minimal Python application foundation:
 
@@ -10,8 +10,14 @@ Issue #1 establishes a minimal Python application foundation:
 - `tests/` verifies only the foundation implemented in this issue.
 - `.github/workflows/ci.yml` runs lint and tests for pushes and pull requests.
 
-No RAG, Agent, API, database, authentication, or vector database behavior is
-implemented in this issue.
+Issue #2 adds the first ingestion slice:
+
+- `ingestion/document.py` defines the unified `Document` and metadata models.
+- `ingestion/exceptions.py` defines ingestion-specific error boundaries.
+- `ingestion/loaders.py` loads PDF, Markdown, and TXT files into a `Document`.
+
+No chunking, embedding, retrieval, RAG, Agent, API, database, authentication,
+or vector database behavior is implemented yet.
 
 ## Module boundaries
 
@@ -37,7 +43,8 @@ The initial delivery sequence keeps each issue narrowly scoped:
 
 1. Issue #1: project architecture and engineering foundation.
 2. Issue #2: document ingestion for PDF, Markdown, and TXT files, including
-   parsing and metadata. This issue does not perform chunking.
+   parsing and metadata. This issue is implemented and does not perform
+   chunking.
 3. Issue #3: document chunking with chunk size, overlap, metadata preservation,
    and batch processing. This issue does not perform embedding or retrieval.
 4. Issue #4: embedding abstraction and implementation, Qdrant storage,

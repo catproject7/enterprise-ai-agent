@@ -3,16 +3,17 @@ A production-oriented RAG and Agent platform for enterprise knowledge management
 
 ## Current scope
 
-This repository currently provides the project foundation only:
+This repository currently provides:
 
 - Python 3.13 package managed with `uv`
 - typed environment-based configuration
 - standard-library logging setup
+- PDF, Markdown, and TXT document ingestion with unified metadata
 - pytest and Ruff configuration
 - GitHub Actions quality checks
 
-Document ingestion, chunking, embeddings, vector storage, RAG, and agents are
-implemented in later issues and are intentionally not included yet.
+Chunking, embeddings, vector storage, RAG, and agents are implemented in later
+issues and are intentionally not included yet.
 
 ## Development setup
 
@@ -67,6 +68,11 @@ src/enterprise_ai_agent/
     __init__.py
     config.py
     logging.py
+  ingestion/
+    __init__.py
+    document.py
+    exceptions.py
+    loaders.py
 tests/
 docs/
 ```
