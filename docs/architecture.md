@@ -16,8 +16,14 @@ Issue #2 adds the first ingestion slice:
 - `ingestion/exceptions.py` defines ingestion-specific error boundaries.
 - `ingestion/loaders.py` loads PDF, Markdown, and TXT files into a `Document`.
 
-No chunking, embedding, retrieval, RAG, Agent, API, database, authentication,
-or vector database behavior is implemented yet.
+Issue #3 adds fixed-size document chunking:
+
+- `chunking/models.py` defines immutable chunk and chunking configuration models.
+- `chunking/splitter.py` splits documents by character count and overlap while
+  preserving source metadata and offsets.
+
+No embedding, retrieval, RAG, Agent, API, database, authentication, or vector
+database behavior is implemented yet.
 
 ## Module boundaries
 
@@ -46,7 +52,8 @@ The initial delivery sequence keeps each issue narrowly scoped:
    parsing and metadata. This issue is implemented and does not perform
    chunking.
 3. Issue #3: document chunking with chunk size, overlap, metadata preservation,
-   and batch processing. This issue does not perform embedding or retrieval.
+   and batch processing. This issue is implemented and does not perform
+   embedding or retrieval.
 4. Issue #4: embedding abstraction and implementation, Qdrant storage,
    document indexing, and vector similarity search. This issue does not
    implement the complete RAG pipeline or agents.
