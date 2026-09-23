@@ -22,8 +22,16 @@ Issue #3 adds fixed-size document chunking:
 - `chunking/splitter.py` splits documents by character count and overlap while
   preserving source metadata and offsets.
 
-No embedding, retrieval, RAG, Agent, API, database, authentication, or vector
-database behavior is implemented yet.
+Issue #4 adds embedding and vector storage:
+
+- `embeddings/` defines a replaceable embedding service and a FastEmbed
+  implementation.
+- `vector_store/` defines a replaceable vector store and a Qdrant implementation.
+- Embedded chunks preserve their complete source metadata and can be retrieved
+  by cosine similarity search.
+
+No retrieval pipeline, RAG, Agent, API, database, or authentication behavior is
+implemented yet.
 
 ## Module boundaries
 
@@ -55,8 +63,8 @@ The initial delivery sequence keeps each issue narrowly scoped:
    and batch processing. This issue is implemented and does not perform
    embedding or retrieval.
 4. Issue #4: embedding abstraction and implementation, Qdrant storage,
-   document indexing, and vector similarity search. This issue does not
-   implement the complete RAG pipeline or agents.
+   document indexing, and vector similarity search. This issue is implemented
+   and does not implement the complete RAG pipeline or agents.
 5. Issue #5: baseline RAG with retrieval, context construction, prompt
    handling, LLM generation, source citations, and an end-to-end flow.
 
