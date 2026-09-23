@@ -11,11 +11,18 @@ This repository currently provides:
 - PDF, Markdown, and TXT document ingestion with unified metadata
 - configurable document chunking with overlapping windows and metadata preservation
 - FastEmbed-based embeddings and Qdrant-backed vector storage
+- semantic vector retrieval from text queries
 - pytest and Ruff configuration
 - GitHub Actions quality checks
 
-Retrieval, RAG, and agents are implemented in later issues and are intentionally
-not included yet.
+The retrieval pipeline currently provides:
+
+```text
+Document → Ingestion → Chunking → Embedding → Vector Store → Retrieval
+```
+
+Retrieval means semantic vector retrieval of chunks. It does not implement RAG
+context construction, prompts, LLM generation, or agents.
 
 ## Development setup
 
@@ -89,6 +96,9 @@ src/enterprise_ai_agent/
     base.py
     models.py
     qdrant.py
+  retrieval/
+    __init__.py
+    service.py
 tests/
 docs/
 ```
