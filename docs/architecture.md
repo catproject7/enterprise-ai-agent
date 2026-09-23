@@ -30,8 +30,15 @@ Issue #4 adds embedding and vector storage:
 - Embedded chunks preserve their complete source metadata and can be retrieved
   by cosine similarity search.
 
-No retrieval pipeline, RAG, Agent, API, database, or authentication behavior is
-implemented yet.
+Issue #5 adds a retrieval pipeline:
+
+- `retrieval/service.py` composes an `EmbeddingService` with a `VectorStore`.
+- `Retriever` turns query text into an embedding and returns the nearest
+  `SearchResult` objects.
+
+Retrieval only performs semantic vector recall. It does not implement RAG
+context construction, prompts, LLM generation, Agent behavior, APIs, databases,
+or authentication.
 
 ## Module boundaries
 
@@ -44,6 +51,7 @@ The expected responsibilities are:
 | Ingestion | Load and parse PDF, Markdown, and TXT documents with metadata |
 | Chunking | Split parsed documents by size and overlap while preserving metadata |
 | Embedding and vector storage | Embed chunks, index them in Qdrant, and perform similarity search |
+| Retrieval | Embed query text and retrieve the nearest stored chunks |
 | RAG | Retrieve context, build prompts, generate answers, and return citations |
 | API | Expose application capabilities through FastAPI |
 | Persistence | Store users, documents, and conversations in PostgreSQL |
@@ -65,8 +73,11 @@ The initial delivery sequence keeps each issue narrowly scoped:
 4. Issue #4: embedding abstraction and implementation, Qdrant storage,
    document indexing, and vector similarity search. This issue is implemented
    and does not implement the complete RAG pipeline or agents.
-5. Issue #5: baseline RAG with retrieval, context construction, prompt
-   handling, LLM generation, source citations, and an end-to-end flow.
+5. Issue #5: semantic retrieval from query text through embedding and vector
+   search. This issue is implemented and does not perform context construction,
+   prompt handling, LLM generation, source citations, or agent orchestration.
+6. Later issues: baseline RAG with context construction, prompt handling, LLM
+   generation, source citations, and an end-to-end flow.
 
 Hybrid retrieval, BM25, reranking, agents, FastAPI APIs, PostgreSQL,
 authentication, and permissions belong to later issues and must not be added
