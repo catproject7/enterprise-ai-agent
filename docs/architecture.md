@@ -74,7 +74,7 @@ LLMService
 → RAG
 ```
 
-The RAG layer currently provides deterministic context, prompt, and response data contracts:
+The RAG layer currently provides the complete orchestration path:
 
 - `rag/context.py` converts ordered `SearchResult` objects into bounded context.
 - `Context` retains the selected text and ordered source information, including
@@ -84,9 +84,11 @@ The RAG layer currently provides deterministic context, prompt, and response dat
 - `rag/response.py` defines immutable `Answer`, `Citation`, and `RAGResponse`
   models. Citations preserve result ID, document metadata, chunk index, and
   source offsets without depending on the full retrieval result.
+- `rag/pipeline.py` orchestrates `Retriever`, `ContextBuilder`, `PromptBuilder`,
+  and `LLMService`, then constructs `Answer` and citations from `Context.sources`.
 
-The context and prompt builders and response models do not call an LLM, generate
-or parse citations, or implement a complete RAG pipeline.
+RAGPipeline does not implement sentence-level citation attribution. Its citations
+represent the retrieval sources included in the prompt for the answer.
 
 ## Module boundaries
 
@@ -104,6 +106,7 @@ The expected responsibilities are:
 | RAG context | Build bounded context while retaining retrieval provenance |
 | RAG prompt | Build a deterministic prompt from a question and retrieved context |
 | RAG response | Model final answers and their ordered supporting citations |
+| RAG pipeline | Orchestrate retrieval, prompting, generation, and citations |
 | RAG | Retrieve context, build prompts, generate answers, and return citations |
 | API | Expose application capabilities through FastAPI |
 | Persistence | Store users, documents, and conversations in PostgreSQL |
@@ -132,11 +135,11 @@ The initial delivery sequence keeps each issue narrowly scoped:
    synchronous text generation. This issue is implemented and does not perform
    context construction, prompt building, source citations, RAG, or agent
    orchestration.
-7. Next RAG slices: deterministic context and prompt construction plus stable
-   answer and citation data models. These slices are implemented and do not call
-   an LLM, generate or parse citations, or orchestrate a complete RAG flow.
-8. Later issues: baseline RAG with prompt handling, LLM generation, source
-   citations, and an end-to-end flow.
+7. Next RAG slices: deterministic context and prompt construction, stable answer
+   and citation models, and pipeline orchestration. This path is implemented.
+   Citations represent the prompt context sources, not sentence-level attribution.
+8. Later issues: citation attribution, evaluation, observability, agents,
+   APIs, persistence, authentication, and production hardening.
 
 Hybrid retrieval, BM25, reranking, agents, FastAPI APIs, PostgreSQL,
 authentication, and permissions belong to later issues and must not be added
