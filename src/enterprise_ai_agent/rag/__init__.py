@@ -1,6 +1,7 @@
 """RAG pipeline primitives."""
 
 from .context import Context, ContextBuilder, ContextBuilderConfig, ContextSource
+from .pipeline import RAGPipeline
 from .prompt import Prompt, PromptBuilder
 from .response import Answer, Citation, RAGResponse
 
@@ -14,4 +15,5 @@ __all__ = [
     "Answer",
     "Citation",
     "RAGResponse",
+    "RAGPipeline",
 ]

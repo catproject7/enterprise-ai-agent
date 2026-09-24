@@ -16,6 +16,7 @@ This repository currently provides:
 - a deterministic RAG context builder with retrieval provenance
 - a deterministic RAG prompt builder with structured sections
 - immutable RAG answer and citation response models
+- an end-to-end RAG pipeline orchestration
 - pytest and Ruff configuration
 - GitHub Actions quality checks
 
@@ -28,9 +29,10 @@ Document → Ingestion → Chunking → Embedding → Vector Store → Retrieval
 Retrieval means semantic vector retrieval of chunks. The RAG context builder
 turns ordered `SearchResult` objects into bounded context and retains source
 metadata. PromptBuilder then combines a question, Context, and system
-instructions into a deterministic Prompt. Answer, Citation, and RAGResponse define
-the final response data contract. They do not call an LLM, generate or parse
-citations, or implement the complete RAG pipeline.
+instructions into a deterministic Prompt. RAGPipeline composes retrieval, context,
+prompt construction, and LLM generation into a RAGResponse. Citations represent
+the retrieval sources included in the prompt; sentence-level attribution is not
+implemented.
 
 The LLM layer currently provides:
 
@@ -130,6 +132,7 @@ src/enterprise_ai_agent/
   rag/
     __init__.py
     context.py
+    pipeline.py
     prompt.py
     response.py
 tests/
