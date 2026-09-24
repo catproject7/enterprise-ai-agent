@@ -40,6 +40,43 @@ Retrieval only performs semantic vector recall. It does not implement RAG
 context construction, prompts, LLM generation, Agent behavior, APIs, databases,
 or authentication.
 
+Issue #6 adds an LLM service boundary:
+
+- `llm/service.py` defines the `LLMService` abstraction for synchronous text
+  generation.
+- `llm/openai.py` provides `OpenAICompatibleLLMService`, which sends a prompt
+  through an injected OpenAI-compatible client and returns the provider text.
+
+The LLM boundary is:
+
+```text
+Prompt
+  ↓
+LLMService
+  ↓
+LLM Provider
+```
+
+`LLMService` is a standalone generation boundary. It does not depend on
+`Retriever`, `SearchResult`, `VectorStore`, or Qdrant, so retrieval and
+generation remain independently replaceable.
+
+A future RAG pipeline is expected to compose these boundaries:
+
+```text
+Retriever
++
+Context Builder
++
+Prompt Builder
++
+LLMService
+→ RAG
+```
+
+None of the Context Builder, Prompt Builder, citation, or RAG modules are
+implemented in this issue.
+
 ## Module boundaries
 
 New modules should be introduced only when the corresponding issue needs them.
@@ -52,6 +89,7 @@ The expected responsibilities are:
 | Chunking | Split parsed documents by size and overlap while preserving metadata |
 | Embedding and vector storage | Embed chunks, index them in Qdrant, and perform similarity search |
 | Retrieval | Embed query text and retrieve the nearest stored chunks |
+| LLM | Generate a synchronous text response for a prompt through a provider |
 | RAG | Retrieve context, build prompts, generate answers, and return citations |
 | API | Expose application capabilities through FastAPI |
 | Persistence | Store users, documents, and conversations in PostgreSQL |
@@ -76,7 +114,11 @@ The initial delivery sequence keeps each issue narrowly scoped:
 5. Issue #5: semantic retrieval from query text through embedding and vector
    search. This issue is implemented and does not perform context construction,
    prompt handling, LLM generation, source citations, or agent orchestration.
-6. Later issues: baseline RAG with context construction, prompt handling, LLM
+6. Issue #6: an `LLMService` abstraction and an OpenAI-compatible adapter for
+   synchronous text generation. This issue is implemented and does not perform
+   context construction, prompt building, source citations, RAG, or agent
+   orchestration.
+7. Later issues: baseline RAG with context construction, prompt handling, LLM
    generation, source citations, and an end-to-end flow.
 
 Hybrid retrieval, BM25, reranking, agents, FastAPI APIs, PostgreSQL,
