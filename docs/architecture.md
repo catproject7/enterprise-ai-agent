@@ -74,8 +74,14 @@ LLMService
 → RAG
 ```
 
-None of the Context Builder, Prompt Builder, citation, or RAG modules are
-implemented in this issue.
+The next RAG slice adds deterministic context construction:
+
+- `rag/context.py` converts ordered `SearchResult` objects into bounded context.
+- `Context` retains the selected text and ordered source information, including
+  document metadata, chunk index, offsets, retrieval score, and result ID.
+
+The context builder does not construct prompts, call an LLM, generate answers,
+create citations, or implement a complete RAG pipeline.
 
 ## Module boundaries
 
@@ -90,6 +96,7 @@ The expected responsibilities are:
 | Embedding and vector storage | Embed chunks, index them in Qdrant, and perform similarity search |
 | Retrieval | Embed query text and retrieve the nearest stored chunks |
 | LLM | Generate a synchronous text response for a prompt through a provider |
+| RAG context | Build bounded context while retaining retrieval provenance |
 | RAG | Retrieve context, build prompts, generate answers, and return citations |
 | API | Expose application capabilities through FastAPI |
 | Persistence | Store users, documents, and conversations in PostgreSQL |
@@ -118,8 +125,11 @@ The initial delivery sequence keeps each issue narrowly scoped:
    synchronous text generation. This issue is implemented and does not perform
    context construction, prompt building, source citations, RAG, or agent
    orchestration.
-7. Later issues: baseline RAG with context construction, prompt handling, LLM
-   generation, source citations, and an end-to-end flow.
+7. Next RAG slice: deterministic context construction from ordered retrieval
+   results. This slice is implemented and does not build prompts, call an LLM,
+   generate answers or citations, or orchestrate a complete RAG flow.
+8. Later issues: baseline RAG with prompt handling, LLM generation, source
+   citations, and an end-to-end flow.
 
 Hybrid retrieval, BM25, reranking, agents, FastAPI APIs, PostgreSQL,
 authentication, and permissions belong to later issues and must not be added
