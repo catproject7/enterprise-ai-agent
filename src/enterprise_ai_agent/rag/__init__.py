@@ -2,6 +2,7 @@
 
 from .context import Context, ContextBuilder, ContextBuilderConfig, ContextSource
 from .prompt import Prompt, PromptBuilder
+from .response import Answer, Citation, RAGResponse
 
 __all__ = [
     "Context",
@@ -10,4 +11,7 @@ __all__ = [
     "ContextSource",
     "Prompt",
     "PromptBuilder",
+    "Answer",
+    "Citation",
+    "RAGResponse",
 ]

@@ -15,6 +15,7 @@ This repository currently provides:
 - a pluggable LLM service abstraction with an OpenAI-compatible provider
 - a deterministic RAG context builder with retrieval provenance
 - a deterministic RAG prompt builder with structured sections
+- immutable RAG answer and citation response models
 - pytest and Ruff configuration
 - GitHub Actions quality checks
 
@@ -27,8 +28,9 @@ Document → Ingestion → Chunking → Embedding → Vector Store → Retrieval
 Retrieval means semantic vector retrieval of chunks. The RAG context builder
 turns ordered `SearchResult` objects into bounded context and retains source
 metadata. PromptBuilder then combines a question, Context, and system
-instructions into a deterministic Prompt. It does not call an LLM or implement
-answer generation, citation generation, or agents.
+instructions into a deterministic Prompt. Answer, Citation, and RAGResponse define
+the final response data contract. They do not call an LLM, generate or parse
+citations, or implement the complete RAG pipeline.
 
 The LLM layer currently provides:
 
@@ -129,6 +131,7 @@ src/enterprise_ai_agent/
     __init__.py
     context.py
     prompt.py
+    response.py
 tests/
 docs/
 ```
