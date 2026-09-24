@@ -12,6 +12,7 @@ This repository currently provides:
 - configurable document chunking with overlapping windows and metadata preservation
 - FastEmbed-based embeddings and Qdrant-backed vector storage
 - semantic vector retrieval from text queries
+- a pluggable LLM service abstraction with an OpenAI-compatible provider
 - pytest and Ruff configuration
 - GitHub Actions quality checks
 
@@ -23,6 +24,22 @@ Document → Ingestion → Chunking → Embedding → Vector Store → Retrieval
 
 Retrieval means semantic vector retrieval of chunks. It does not implement RAG
 context construction, prompts, LLM generation, or agents.
+
+The LLM layer currently provides:
+
+```text
+Prompt
+  ↓
+LLMService
+  ↓
+OpenAI-compatible LLM Provider
+```
+
+`LLMService` is an abstraction over synchronous text generation, and
+`OpenAICompatibleLLMService` adapts it to an injected OpenAI-compatible client.
+
+This is a service abstraction only. There is still no Context Builder, no Prompt
+Builder, no RAG, no Citation handling, and no Agent.
 
 ## Development setup
 
@@ -98,6 +115,10 @@ src/enterprise_ai_agent/
     qdrant.py
   retrieval/
     __init__.py
+    service.py
+  llm/
+    __init__.py
+    openai.py
     service.py
 tests/
 docs/
