@@ -13,6 +13,7 @@ This repository currently provides:
 - FastEmbed-based embeddings and Qdrant-backed vector storage
 - semantic vector retrieval from text queries
 - a pluggable LLM service abstraction with an OpenAI-compatible provider
+- a deterministic RAG context builder with retrieval provenance
 - pytest and Ruff configuration
 - GitHub Actions quality checks
 
@@ -22,8 +23,10 @@ The retrieval pipeline currently provides:
 Document → Ingestion → Chunking → Embedding → Vector Store → Retrieval
 ```
 
-Retrieval means semantic vector retrieval of chunks. It does not implement RAG
-context construction, prompts, LLM generation, or agents.
+Retrieval means semantic vector retrieval of chunks. The RAG context builder
+turns ordered `SearchResult` objects into bounded context and retains source
+metadata. It does not implement prompt construction, LLM orchestration, answer
+generation, citation generation, or agents.
 
 The LLM layer currently provides:
 
@@ -120,6 +123,9 @@ src/enterprise_ai_agent/
     __init__.py
     openai.py
     service.py
+  rag/
+    __init__.py
+    context.py
 tests/
 docs/
 ```
