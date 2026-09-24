@@ -74,14 +74,16 @@ LLMService
 → RAG
 ```
 
-The next RAG slice adds deterministic context construction:
+The RAG layer currently provides deterministic context and prompt construction:
 
 - `rag/context.py` converts ordered `SearchResult` objects into bounded context.
 - `Context` retains the selected text and ordered source information, including
   document metadata, chunk index, offsets, retrieval score, and result ID.
+- `rag/prompt.py` combines a question, `Context`, and system instructions into a
+  deterministic `Prompt` with explicit system, context, and question sections.
 
-The context builder does not construct prompts, call an LLM, generate answers,
-create citations, or implement a complete RAG pipeline.
+The context and prompt builders do not call an LLM, generate answers, create
+citations, or implement a complete RAG pipeline.
 
 ## Module boundaries
 
@@ -97,6 +99,7 @@ The expected responsibilities are:
 | Retrieval | Embed query text and retrieve the nearest stored chunks |
 | LLM | Generate a synchronous text response for a prompt through a provider |
 | RAG context | Build bounded context while retaining retrieval provenance |
+| RAG prompt | Build a deterministic prompt from a question and retrieved context |
 | RAG | Retrieve context, build prompts, generate answers, and return citations |
 | API | Expose application capabilities through FastAPI |
 | Persistence | Store users, documents, and conversations in PostgreSQL |
@@ -125,8 +128,8 @@ The initial delivery sequence keeps each issue narrowly scoped:
    synchronous text generation. This issue is implemented and does not perform
    context construction, prompt building, source citations, RAG, or agent
    orchestration.
-7. Next RAG slice: deterministic context construction from ordered retrieval
-   results. This slice is implemented and does not build prompts, call an LLM,
+7. Next RAG slices: deterministic context and prompt construction from ordered
+   retrieval results. These slices are implemented and do not call an LLM,
    generate answers or citations, or orchestrate a complete RAG flow.
 8. Later issues: baseline RAG with prompt handling, LLM generation, source
    citations, and an end-to-end flow.
