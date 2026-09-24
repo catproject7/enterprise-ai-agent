@@ -74,16 +74,19 @@ LLMService
 → RAG
 ```
 
-The RAG layer currently provides deterministic context and prompt construction:
+The RAG layer currently provides deterministic context, prompt, and response data contracts:
 
 - `rag/context.py` converts ordered `SearchResult` objects into bounded context.
 - `Context` retains the selected text and ordered source information, including
   document metadata, chunk index, offsets, retrieval score, and result ID.
 - `rag/prompt.py` combines a question, `Context`, and system instructions into a
   deterministic `Prompt` with explicit system, context, and question sections.
+- `rag/response.py` defines immutable `Answer`, `Citation`, and `RAGResponse`
+  models. Citations preserve result ID, document metadata, chunk index, and
+  source offsets without depending on the full retrieval result.
 
-The context and prompt builders do not call an LLM, generate answers, create
-citations, or implement a complete RAG pipeline.
+The context and prompt builders and response models do not call an LLM, generate
+or parse citations, or implement a complete RAG pipeline.
 
 ## Module boundaries
 
@@ -100,6 +103,7 @@ The expected responsibilities are:
 | LLM | Generate a synchronous text response for a prompt through a provider |
 | RAG context | Build bounded context while retaining retrieval provenance |
 | RAG prompt | Build a deterministic prompt from a question and retrieved context |
+| RAG response | Model final answers and their ordered supporting citations |
 | RAG | Retrieve context, build prompts, generate answers, and return citations |
 | API | Expose application capabilities through FastAPI |
 | Persistence | Store users, documents, and conversations in PostgreSQL |
@@ -128,9 +132,9 @@ The initial delivery sequence keeps each issue narrowly scoped:
    synchronous text generation. This issue is implemented and does not perform
    context construction, prompt building, source citations, RAG, or agent
    orchestration.
-7. Next RAG slices: deterministic context and prompt construction from ordered
-   retrieval results. These slices are implemented and do not call an LLM,
-   generate answers or citations, or orchestrate a complete RAG flow.
+7. Next RAG slices: deterministic context and prompt construction plus stable
+   answer and citation data models. These slices are implemented and do not call
+   an LLM, generate or parse citations, or orchestrate a complete RAG flow.
 8. Later issues: baseline RAG with prompt handling, LLM generation, source
    citations, and an end-to-end flow.
 
