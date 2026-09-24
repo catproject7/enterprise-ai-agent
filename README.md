@@ -17,6 +17,7 @@ This repository currently provides:
 - a deterministic RAG prompt builder with structured sections
 - immutable RAG answer and citation response models
 - an end-to-end RAG pipeline orchestration
+- offline RAG evaluation metrics for retrieval, answers, and citations
 - pytest and Ruff configuration
 - GitHub Actions quality checks
 
@@ -32,7 +33,9 @@ metadata. PromptBuilder then combines a question, Context, and system
 instructions into a deterministic Prompt. RAGPipeline composes retrieval, context,
 prompt construction, and LLM generation into a RAGResponse. Citations represent
 the retrieval sources included in the prompt; sentence-level attribution is not
-implemented.
+implemented. Evaluation is an offline layer outside RAGPipeline and provides
+Recall@K, Precision@K, normalized exact-match Answer correctness, and Citation
+Coverage. It does not use an LLM judge or an external evaluation framework.
 
 The LLM layer currently provides:
 
@@ -135,6 +138,11 @@ src/enterprise_ai_agent/
     pipeline.py
     prompt.py
     response.py
+  evaluation/
+    __init__.py
+    evaluator.py
+    metrics.py
+    models.py
 tests/
 docs/
 ```
