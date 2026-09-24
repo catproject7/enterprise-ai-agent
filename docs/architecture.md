@@ -90,6 +90,17 @@ The RAG layer currently provides the complete orchestration path:
 RAGPipeline does not implement sentence-level citation attribution. Its citations
 represent the retrieval sources included in the prompt for the answer.
 
+Issue #11 adds an independent offline evaluation layer:
+
+- `evaluation/models.py` defines immutable datasets, cases, and metric results.
+- `evaluation/metrics.py` calculates Recall@K, Precision@K, normalized
+  exact-match Answer correctness, and Citation Coverage.
+- `evaluation/evaluator.py` aggregates metrics for already-produced retrieval
+  results and RAG responses without calling production components.
+
+Evaluation does not modify RAGPipeline and does not use an LLM judge, semantic
+similarity, an external evaluation framework, or a dashboard in this version.
+
 ## Module boundaries
 
 New modules should be introduced only when the corresponding issue needs them.
@@ -138,8 +149,11 @@ The initial delivery sequence keeps each issue narrowly scoped:
 7. Next RAG slices: deterministic context and prompt construction, stable answer
    and citation models, and pipeline orchestration. This path is implemented.
    Citations represent the prompt context sources, not sentence-level attribution.
-8. Later issues: citation attribution, evaluation, observability, agents,
-   APIs, persistence, authentication, and production hardening.
+8. Issue #11: an offline evaluation foundation for retrieval, answers, and
+   citations. This issue is implemented without entering the production RAG
+   call chain.
+9. Later issues: citation attribution, observability, agents, APIs, persistence,
+   authentication, and production hardening.
 
 Hybrid retrieval, BM25, reranking, agents, FastAPI APIs, PostgreSQL,
 authentication, and permissions belong to later issues and must not be added
