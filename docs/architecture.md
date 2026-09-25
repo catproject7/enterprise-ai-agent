@@ -197,6 +197,30 @@ Issue #16 does not support parallel Tool Calls, a repeated Agent loop,
 planning, memory, streaming, MCP, or multi-agent execution. `LLMService` and
 `RAGPipeline` retain their existing responsibilities.
 
+Issue #17 adds a FastAPI API foundation:
+
+- `api/app.py` creates the application and accepts an optional injected `Agent[str]`.
+- `api/dependencies.py` resolves the Agent from application state and fails closed
+  with `503 Service Unavailable` when it is not configured.
+- `api/models.py` defines stable request, response, health, and error models.
+- `api/routes.py` exposes `GET /health` and `POST /agent/run`.
+
+The HTTP API boundary is:
+
+```text
+HTTP Request
+  ↓
+Agent[str]
+  ↓
+AgentResult[str]
+  ↓
+HTTP Response
+```
+
+The API layer does not depend directly on LLM providers, RAG, vector storage,
+or tool implementations. The default `app = create_app()` has no configured
+Agent; health remains available while Agent execution fails closed.
+
 ## Module boundaries
 
 New modules should be introduced only when the corresponding issue needs them.
@@ -217,7 +241,7 @@ The expected responsibilities are:
 | RAG pipeline | Orchestrate retrieval, prompting, generation, and citations |
 | RAG | Retrieve context, build prompts, generate answers, and return citations |
 | Tools | Provide stable synchronous capabilities and registration for Agents |
-| API | Expose application capabilities through FastAPI |
+| API | Expose the abstract Agent through FastAPI without infrastructure coupling |
 | Persistence | Store users, documents, and conversations in PostgreSQL |
 | Authentication | Authenticate users and enforce permissions |
 | Agents | Provide deterministic and LLM-driven Agent execution boundaries |
@@ -261,9 +285,11 @@ The initial delivery sequence keeps each issue narrowly scoped:
 13. Issue #16: finite LLM Tool Calling with one Tool Call, a provider-neutral
     exchange, an OpenAI-compatible adapter, and `LLMAgent`. This issue does not
     implement parallel calls, repeated loops, or autonomous planning.
-14. Later issues: citation attribution, observability, APIs, persistence,
+14. Issue #17: a minimal FastAPI application with health and Agent execution
+    endpoints, injected through the abstract `Agent[str]` contract.
+15. Later issues: citation attribution, observability, persistence,
     authentication, and production hardening.
 
-Hybrid retrieval, BM25, reranking, agents, FastAPI APIs, PostgreSQL,
+Hybrid retrieval, BM25, reranking, agents, PostgreSQL,
 authentication, and permissions belong to later issues and must not be added
 early.

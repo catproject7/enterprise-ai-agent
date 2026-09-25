@@ -19,6 +19,7 @@ This repository currently provides:
 - an end-to-end RAG pipeline orchestration
 - a minimal Agent foundation for deterministic single-tool execution
 - finite LLM tool calling with one supported tool-call round
+- a FastAPI application foundation for health and Agent execution endpoints
 - a minimal Tool boundary with a RAGPipeline adapter for future agents
 - offline RAG evaluation metrics, JSON datasets, and batch evaluation runner
 - pytest and Ruff configuration
@@ -84,6 +85,21 @@ OpenAI-compatible LLM Provider
 `LLMService` remains the text-generation boundary. Tool Calling is provided by
 the separate provider-neutral `ToolCallingLLM` abstraction.
 
+The HTTP API currently provides:
+
+```text
+HTTP Request
+  ↓
+Agent[str]
+  ↓
+AgentResult[str]
+  ↓
+HTTP Response
+```
+
+The API layer depends only on the `Agent[str]` abstraction. It does not import
+LLM providers, RAG implementation, vector storage, or tools.
+
 ## Development setup
 
 Prerequisites:
@@ -120,6 +136,23 @@ Run lint checks:
 uv run ruff check .
 ```
 
+## FastAPI application
+
+Start the application:
+
+```powershell
+uv run uvicorn enterprise_ai_agent.api.app:app --reload
+```
+
+Available endpoints:
+
+- `GET /health`
+- `POST /agent/run`
+
+`POST /agent/run` accepts `{"input": "..."}`. The default application has no
+real Agent configured, so it returns `503 Service Unavailable` for this endpoint
+until an `Agent[str]` is injected through `create_app(agent)`.
+
 ## Configuration
 
 Configuration is loaded from environment variables with the
@@ -133,6 +166,12 @@ See `.env.example` for the currently supported settings.
 ```text
 src/enterprise_ai_agent/
   __init__.py
+  api/
+    __init__.py
+    app.py
+    dependencies.py
+    models.py
+    routes.py
   core/
     __init__.py
     config.py
