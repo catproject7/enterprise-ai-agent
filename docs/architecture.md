@@ -162,8 +162,40 @@ RAGPipeline
 
 `ToolAgent` depends only on the Tool abstraction and does not know about
 `RAGPipeline` internals. Issue #15 does not implement LLM Tool Calling,
-automatic Tool selection, ToolCall models, or a Tool registry. Issue #16 is
-responsible for LLM-driven Tool selection and invocation.
+automatic Tool selection, ToolCall models, or a Tool registry. Issue #16 adds
+a bounded Tool Calling path on top of this boundary.
+
+Issue #16 adds finite LLM Tool Calling:
+
+- `llm/tool_calling.py` defines provider-neutral `ToolSpec`, `ToolCall`,
+  `ToolResult`, and `ToolCallingLLM` boundaries.
+- `llm/openai_tool_calling.py` adapts those models to the OpenAI Responses API.
+- `tools/registry.py` registers string-input tools, generates schemas, parses
+  arguments, and serializes tool output.
+- `agent/llm.py` defines `LLMAgent`, which executes at most one Tool Call and
+  then requests one final answer from the LLM.
+
+The bounded Tool Calling flow is:
+
+```text
+User
+  ↓
+LLMAgent
+  ↓
+ToolCallingLLM
+  ↓
+ToolRegistry
+  ↓
+Tool
+  ↓
+RAGTool
+  ↓
+RAGPipeline
+```
+
+Issue #16 does not support parallel Tool Calls, a repeated Agent loop,
+planning, memory, streaming, MCP, or multi-agent execution. `LLMService` and
+`RAGPipeline` retain their existing responsibilities.
 
 ## Module boundaries
 
@@ -178,16 +210,17 @@ The expected responsibilities are:
 | Embedding and vector storage | Embed chunks, index them in Qdrant, and perform similarity search |
 | Retrieval | Embed query text and retrieve the nearest stored chunks |
 | LLM | Generate a synchronous text response for a prompt through a provider |
+| LLM Tool Calling | Select one external tool through a provider-neutral exchange |
 | RAG context | Build bounded context while retaining retrieval provenance |
 | RAG prompt | Build a deterministic prompt from a question and retrieved context |
 | RAG response | Model final answers and their ordered supporting citations |
 | RAG pipeline | Orchestrate retrieval, prompting, generation, and citations |
 | RAG | Retrieve context, build prompts, generate answers, and return citations |
-| Tools | Provide stable synchronous capabilities for a future Agent |
+| Tools | Provide stable synchronous capabilities and registration for Agents |
 | API | Expose application capabilities through FastAPI |
 | Persistence | Store users, documents, and conversations in PostgreSQL |
 | Authentication | Authenticate users and enforce permissions |
-| Agents | Provide a replaceable Agent boundary above Tools |
+| Agents | Provide deterministic and LLM-driven Agent execution boundaries |
 | Evaluation | Measure retrieval and answer quality against benchmark datasets |
 
 ## Planned delivery sequence
@@ -225,7 +258,10 @@ The initial delivery sequence keeps each issue narrowly scoped:
     Agent boundary. This issue does not implement Agent orchestration.
 12. Issue #15: a minimal Agent abstraction and deterministic single-Tool
     execution. This issue does not implement LLM Tool Calling.
-13. Later issues: citation attribution, observability, LLM Tool Calling, APIs, persistence,
+13. Issue #16: finite LLM Tool Calling with one Tool Call, a provider-neutral
+    exchange, an OpenAI-compatible adapter, and `LLMAgent`. This issue does not
+    implement parallel calls, repeated loops, or autonomous planning.
+14. Later issues: citation attribution, observability, APIs, persistence,
     authentication, and production hardening.
 
 Hybrid retrieval, BM25, reranking, agents, FastAPI APIs, PostgreSQL,

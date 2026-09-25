@@ -18,6 +18,7 @@ This repository currently provides:
 - immutable RAG answer and citation response models
 - an end-to-end RAG pipeline orchestration
 - a minimal Agent foundation for deterministic single-tool execution
+- finite LLM tool calling with one supported tool-call round
 - a minimal Tool boundary with a RAGPipeline adapter for future agents
 - offline RAG evaluation metrics, JSON datasets, and batch evaluation runner
 - pytest and Ruff configuration
@@ -43,10 +44,16 @@ datasets can be loaded from UTF-8 JSON files with optional version metadata.
 It does not use an LLM judge, parallel execution, or an external evaluation
 framework.
 
-The Agent and Tool layers currently provide:
+The Agent and Tool Calling layers currently provide:
 
 ```text
-Agent
+User
+  ↓
+LLMAgent
+  ↓
+ToolCallingLLM
+  ↓
+ToolRegistry
   ↓
 Tool
   ↓
@@ -55,11 +62,11 @@ RAGTool
 RAGPipeline
 ```
 
-`Agent` defines the execution boundary, and `ToolAgent` deterministically runs
-one injected Tool. `RAGTool` adapts the existing `RAGPipeline` without
-duplicating RAG behavior. This foundation does not include LLM Tool Calling or
-automatic Tool selection; Issue #16 will add LLM-driven Tool selection and
-invocation.
+`Agent` defines the execution boundary. `ToolAgent` deterministically runs one
+injected Tool, while `LLMAgent` supports at most one LLM-requested Tool Call
+followed by one final answer. `RAGTool` adapts the existing `RAGPipeline`
+without duplicating RAG behavior. Parallel Tool Calls, repeated Agent loops,
+Memory, Planning, and streaming are not implemented.
 
 The LLM layer currently provides:
 
@@ -74,8 +81,8 @@ OpenAI-compatible LLM Provider
 `LLMService` is an abstraction over synchronous text generation, and
 `OpenAICompatibleLLMService` adapts it to an injected OpenAI-compatible client.
 
-This is a generation service abstraction only. LLM-driven Agent orchestration
-is not implemented.
+`LLMService` remains the text-generation boundary. Tool Calling is provided by
+the separate provider-neutral `ToolCallingLLM` abstraction.
 
 ## Development setup
 
@@ -155,7 +162,9 @@ src/enterprise_ai_agent/
   llm/
     __init__.py
     openai.py
+    openai_tool_calling.py
     service.py
+    tool_calling.py
   rag/
     __init__.py
     context.py
@@ -165,6 +174,8 @@ src/enterprise_ai_agent/
   agent/
     __init__.py
     base.py
+    exceptions.py
+    llm.py
     models.py
     tool.py
   evaluation/
@@ -177,7 +188,9 @@ src/enterprise_ai_agent/
   tools/
     __init__.py
     base.py
+    exceptions.py
     rag.py
+    registry.py
 tests/
 docs/
 ```
