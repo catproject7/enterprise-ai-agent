@@ -1,5 +1,6 @@
 """RAG evaluation primitives."""
 
+from .dataset import load_evaluation_dataset
 from .evaluator import Evaluator
 from .metrics import (
     aggregate_results,
@@ -13,6 +14,7 @@ from .models import (
     CitationCoverage,
     EvaluationCase,
     EvaluationDataset,
+    EvaluationDatasetMetadata,
     EvaluationReport,
     EvaluationResult,
     GroundTruthChunk,
@@ -26,6 +28,7 @@ __all__ = [
     "CitationCoverage",
     "EvaluationCase",
     "EvaluationDataset",
+    "EvaluationDatasetMetadata",
     "EvaluationReport",
     "EvaluationResult",
     "EvaluationRunner",
@@ -36,4 +39,5 @@ __all__ = [
     "calculate_answer_correctness",
     "calculate_citation_coverage",
     "calculate_retrieval_metrics",
+    "load_evaluation_dataset",
 ]

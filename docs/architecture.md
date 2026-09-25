@@ -107,8 +107,14 @@ Issue #12 adds batch evaluation orchestration:
 - `EvaluationReport` contains ordered per-case results and aggregate metrics.
 - The first version is offline, deterministic, dependency-injected, and fail-fast.
 
+Issue #13 adds a portable dataset format and loader:
+
+- `evaluation/models.py` adds optional dataset metadata with name and version.
+- `evaluation/dataset.py` loads UTF-8 JSON into a validated `EvaluationDataset`.
+- Ground-truth source, chunk index, and offsets are validated without normalization.
+
 Evaluation does not modify production RAG behavior, repeat retrieval, use an LLM
-judge, semantic similarity, an external evaluation framework, or a dashboard.
+judge, semantic similarity, an external evaluation framework, a CLI, or a dashboard.
 
 ## Module boundaries
 
@@ -163,7 +169,9 @@ The initial delivery sequence keeps each issue narrowly scoped:
    call chain.
 9. Issue #12: a batch evaluation runner using RAG execution traces and
    aggregated reports. This issue is implemented with fail-fast offline execution.
-10. Later issues: citation attribution, observability, agents, APIs, persistence,
+10. Issue #13: JSON evaluation dataset metadata and loading. This issue is
+    implemented without running the RAG pipeline or adding a CLI.
+11. Later issues: citation attribution, observability, agents, APIs, persistence,
     authentication, and production hardening.
 
 Hybrid retrieval, BM25, reranking, agents, FastAPI APIs, PostgreSQL,

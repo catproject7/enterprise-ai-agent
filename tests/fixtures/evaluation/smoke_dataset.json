@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "name": "rag-smoke",
+    "version": "1",
+    "description": "Small deterministic evaluation dataset"
+  },
+  "cases": [
+    {
+      "case_id": "case-1",
+      "question": "What is alpha?",
+      "expected_answer": "Alpha is a test concept.",
+      "relevant_chunks": [
+        {
+          "source": "sample.txt",
+          "chunk_index": 0,
+          "start_offset": 0,
+          "end_offset": 10
+        }
+      ]
+    },
+    {
+      "case_id": "case-2",
+      "question": "What is beta?",
+      "expected_answer": "Beta is another test concept.",
+      "relevant_chunks": [
+        {
+          "source": "sample.txt",
+          "chunk_index": 1,
+          "start_offset": 10,
+          "end_offset": 20
+        }
+      ]
+    }
+  ]
+}
