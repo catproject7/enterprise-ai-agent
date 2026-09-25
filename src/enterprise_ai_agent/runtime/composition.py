@@ -1,5 +1,7 @@
 """Compose existing components into a runnable Agent and FastAPI application."""
 
+from dataclasses import dataclass
+
 from fastapi import FastAPI
 from openai import OpenAI
 from qdrant_client import QdrantClient
@@ -33,6 +35,14 @@ class RuntimeConfigurationError(RuntimeError):
     """Raised when required runtime configuration is missing or invalid."""
 
 
+@dataclass(frozen=True, slots=True)
+class RuntimeComponents:
+    """Shared dependencies used by the Agent and RAG API."""
+
+    agent: Agent[str]
+    rag_pipeline: RAGPipeline
+
+
 def assemble_agent(
     *,
     embedding_service: EmbeddingService,
@@ -43,43 +53,28 @@ def assemble_agent(
 ) -> Agent[str]:
     """Assemble existing components into a RAG-capable LLM Agent."""
 
-    retriever = Retriever(embedding_service, vector_store)
-    pipeline = RAGPipeline(
-        retriever=retriever,
-        context_builder=ContextBuilder(),
-        prompt_builder=PromptBuilder(),
+    pipeline = _build_rag_pipeline(
+        embedding_service=embedding_service,
+        vector_store=vector_store,
         llm_service=llm_service,
     )
-    registry = ToolRegistry()
-    registry.register(RAGTool(pipeline), argument_name="query")
-
-    if instrument:
-        registry = TracedToolRegistry(registry)
-        tool_calling_llm = TracedToolCallingLLM(tool_calling_llm)
-
-    agent = LLMAgent(tool_calling_llm, registry)
-    if instrument:
-        return TracedAgent(agent)
-    return agent
+    return _assemble_agent_from_pipeline(
+        pipeline,
+        tool_calling_llm,
+        instrument=instrument,
+    )
 
 
-def create_runtime(settings: AppSettings | None = None) -> Agent[str]:
-    """Create a real Agent from application settings."""
+def create_runtime_components(
+    settings: AppSettings | None = None,
+) -> RuntimeComponents:
+    """Create the shared Agent and RAG dependencies from application settings."""
 
     resolved = settings if settings is not None else get_settings()
     _validate_runtime_settings(resolved)
 
-    embedding_service = FastEmbedEmbeddingService(
-        model_name=resolved.embedding_model,
-        dimension=resolved.embedding_dimension,
-        batch_size=resolved.embedding_batch_size,
-        cache_dir=resolved.embedding_cache_dir,
-    )
-    vector_store = QdrantVectorStore(
-        _build_qdrant_client(resolved),
-        collection_name=resolved.qdrant_collection_name,
-    )
-    vector_store.ensure_collection(embedding_service.dimension)
+    embedding_service = _build_embedding_service(resolved)
+    vector_store = _build_vector_store(resolved, embedding_service)
 
     openai_client = _build_openai_client(resolved)
     llm_service = OpenAICompatibleLLMService(
@@ -90,21 +85,89 @@ def create_runtime(settings: AppSettings | None = None) -> Agent[str]:
         openai_client,
         model=resolved.llm_model,
     )
-
-    return assemble_agent(
+    rag_pipeline = _build_rag_pipeline(
         embedding_service=embedding_service,
         vector_store=vector_store,
         llm_service=llm_service,
-        tool_calling_llm=tool_calling_llm,
     )
+    agent = _assemble_agent_from_pipeline(
+        rag_pipeline,
+        tool_calling_llm,
+        instrument=True,
+    )
+    return RuntimeComponents(agent=agent, rag_pipeline=rag_pipeline)
+
+
+def create_runtime(settings: AppSettings | None = None) -> Agent[str]:
+    """Create a real Agent from application settings."""
+
+    return create_runtime_components(settings).agent
 
 
 def create_runtime_app(settings: AppSettings | None = None) -> FastAPI:
-    """Create FastAPI with a fully configured Agent."""
+    """Create FastAPI with a fully configured Agent and RAG pipeline."""
 
     resolved = settings if settings is not None else get_settings()
     configure_observability_logging(resolved.log_level)
-    return create_app(agent=create_runtime(resolved))
+    components = create_runtime_components(resolved)
+    return create_app(
+        agent=components.agent,
+        rag_pipeline=components.rag_pipeline,
+    )
+
+
+def _assemble_agent_from_pipeline(
+    pipeline: RAGPipeline,
+    tool_calling_llm: ToolCallingLLM,
+    *,
+    instrument: bool,
+) -> Agent[str]:
+    registry = ToolRegistry()
+    registry.register(RAGTool(pipeline), argument_name="query")
+    if instrument:
+        registry = TracedToolRegistry(registry)
+        tool_calling_llm = TracedToolCallingLLM(tool_calling_llm)
+
+    agent = LLMAgent(tool_calling_llm, registry)
+    if instrument:
+        return TracedAgent(agent)
+    return agent
+
+
+def _build_rag_pipeline(
+    *,
+    embedding_service: EmbeddingService,
+    vector_store: VectorStore,
+    llm_service: LLMService,
+) -> RAGPipeline:
+    retriever = Retriever(embedding_service, vector_store)
+    return RAGPipeline(
+        retriever=retriever,
+        context_builder=ContextBuilder(),
+        prompt_builder=PromptBuilder(),
+        llm_service=llm_service,
+    )
+
+
+def _build_embedding_service(settings: AppSettings) -> EmbeddingService:
+    return FastEmbedEmbeddingService(
+        model_name=settings.embedding_model,
+        dimension=settings.embedding_dimension,
+        batch_size=settings.embedding_batch_size,
+        cache_dir=settings.embedding_cache_dir,
+    )
+
+
+def _build_vector_store(
+    settings: AppSettings,
+    embedding_service: EmbeddingService,
+) -> VectorStore:
+    vector_store = QdrantVectorStore(
+        _build_qdrant_client(settings),
+        collection_name=settings.qdrant_collection_name,
+    )
+    vector_store.ensure_collection(embedding_service.dimension)
+    return vector_store
 
 
 def _validate_runtime_settings(settings: AppSettings) -> None:

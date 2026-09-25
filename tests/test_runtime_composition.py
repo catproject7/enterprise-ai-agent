@@ -20,12 +20,15 @@ from enterprise_ai_agent.llm import (
     ToolSpec,
 )
 from enterprise_ai_agent.observability import TracedAgent
+from enterprise_ai_agent.rag import Answer, RAGPipeline, RAGResponse
 from enterprise_ai_agent.runtime import (
+    RuntimeComponents,
     RuntimeConfigurationError,
     assemble_agent,
     composition,
     create_runtime,
     create_runtime_app,
+    create_runtime_components,
 )
 from enterprise_ai_agent.vector_store import SearchResult, VectorStore
 
@@ -104,6 +107,16 @@ class FakeAgent(Agent[str]):
 
     def run(self, input: str) -> AgentResult[str]:
         return AgentResult(output=f"answer:{input}")
+
+
+class FakeRAGPipeline(RAGPipeline):
+    """Minimal RAG pipeline used by runtime API tests."""
+
+    def __init__(self, response: RAGResponse) -> None:
+        self.response = response
+
+    def run(self, question: str) -> RAGResponse:
+        return self.response
 
 
 def _make_result(content: str) -> SearchResult:
@@ -195,7 +208,7 @@ def test_assemble_agent_can_enable_instrumentation() -> None:
     assert isinstance(agent, TracedAgent)
 
 
-def test_create_runtime_builds_shared_clients_and_initializes_collection(
+def test_create_runtime_components_builds_shared_clients_and_initializes_collection(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     embedding_service = FakeEmbeddingService()
@@ -204,8 +217,10 @@ def test_create_runtime_builds_shared_clients_and_initializes_collection(
     openai_client = object()
     llm_service = FakeLLMService()
     tool_calling_llm = FakeToolCallingLLM([ToolCallingResponse(text="answer")])
+    fake_pipeline = object()
     expected_agent = FakeAgent()
-    captured: dict[str, object] = {}
+    pipeline_args: dict[str, object] = {}
+    agent_args: dict[str, object] = {}
     qdrant_calls: list[dict[str, object]] = []
     openai_calls: list[dict[str, object]] = []
     llm_clients: list[object] = []
@@ -243,21 +258,34 @@ def test_create_runtime_builds_shared_clients_and_initializes_collection(
     )
     monkeypatch.setattr(
         composition,
-        "assemble_agent",
-        lambda **kwargs: captured.update(kwargs) or expected_agent,
+        "_build_rag_pipeline",
+        lambda **kwargs: pipeline_args.update(kwargs) or fake_pipeline,
+    )
+    monkeypatch.setattr(
+        composition,
+        "_assemble_agent_from_pipeline",
+        lambda pipeline, llm, *, instrument: (
+            agent_args.update({"pipeline": pipeline, "llm": llm, "instrument": instrument})
+            or expected_agent
+        ),
     )
 
-    agent = create_runtime(_make_settings())
+    components = create_runtime_components(_make_settings())
 
-    assert agent is expected_agent
+    assert components.agent is expected_agent
+    assert components.rag_pipeline is fake_pipeline
     assert qdrant_calls == [{"location": ":memory:"}]
     assert openai_calls == [{"api_key": "test-key"}]
     assert vector_store.ensured_dimensions == [2]
-    assert captured == {
+    assert pipeline_args == {
         "embedding_service": embedding_service,
         "vector_store": vector_store,
         "llm_service": llm_service,
-        "tool_calling_llm": tool_calling_llm,
+    }
+    assert agent_args == {
+        "pipeline": fake_pipeline,
+        "llm": tool_calling_llm,
+        "instrument": True,
     }
     assert llm_clients == [openai_client]
     assert tool_llm_clients == [openai_client]
@@ -277,8 +305,16 @@ def test_create_runtime_requires_llm_api_key() -> None:
 def test_create_runtime_app_injects_agent(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    agent = FakeAgent()
-    monkeypatch.setattr(composition, "create_runtime", lambda settings: agent)
+    response = RAGResponse(answer=Answer(text="rag answer"))
+    components = RuntimeComponents(
+        agent=FakeAgent(),
+        rag_pipeline=FakeRAGPipeline(response),
+    )
+    monkeypatch.setattr(
+        composition,
+        "create_runtime_components",
+        lambda settings: components,
+    )
     monkeypatch.setattr(
         composition,
         "configure_observability_logging",

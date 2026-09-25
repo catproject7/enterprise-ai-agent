@@ -175,6 +175,93 @@ Runtime settings use these environment variables:
 The default `enterprise_ai_agent.api.app:app` remains health-only and does
 not create an Agent unless one is explicitly injected.
 
+## Demo Quick Start
+
+### 1. Install
+
+```powershell
+uv sync --dev
+```
+
+### 2. Configure
+
+```powershell
+Copy-Item .env.example .env
+$env:ENTERPRISE_AI_AGENT_LLM_API_KEY = "your-api-key"
+$env:ENTERPRISE_AI_AGENT_QDRANT_URL = "http://localhost:6333"
+```
+
+For a single-process test, the default `:memory:` Qdrant can be used. It cannot
+share indexed documents between separate indexing and API processes.
+
+### 3. Start Qdrant
+
+```powershell
+docker run --rm -p 6333:6333 -p 6334:6334 qdrant/qdrant
+```
+
+### 4. Index the demo document
+
+A small example document is available at `demo/documents/example.md`.
+
+```powershell
+uv run python -m enterprise_ai_agent.runtime.indexing demo/documents
+```
+
+The command loads PDF, Markdown, and TXT files, chunks them, embeds the chunks,
+ensures the configured Qdrant collection, and upserts the vectors.
+
+### 5. Start the runtime API
+
+```powershell
+uv run uvicorn enterprise_ai_agent.runtime.composition:create_runtime_app --factory
+```
+
+### 6. Query RAG with citations
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/rag/query `
+  -ContentType "application/json" `
+  -Body '{"question":"How often must Northstar API keys be rotated?"}'
+```
+
+Example response:
+
+```json
+{
+  "answer": "Northstar API keys must be rotated every 90 days.",
+  "citations": [
+    {
+      "result_id": "...",
+      "metadata": {
+        "source": "...",
+        "file_name": "example.md",
+        "file_type": "markdown",
+        "file_size": 361
+      },
+      "chunk_index": 0,
+      "start_offset": 0,
+      "end_offset": 361
+    }
+  ]
+}
+```
+
+### 7. Query the Agent
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/agent/run `
+  -ContentType "application/json" `
+  -Body '{"input":"How often must Northstar API keys be rotated?"}'
+```
+
+The Agent response contains the generated `output`. The direct `/rag/query`
+endpoint is the recommended path when structured citations are required.
+
 ## Development setup
 
 Prerequisites:
@@ -265,6 +352,7 @@ src/enterprise_ai_agent/
   runtime/
     __init__.py
     composition.py
+    indexing.py
   core/
     __init__.py
     config.py

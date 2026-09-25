@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from enterprise_ai_agent.conversation import Conversation, Message
+from enterprise_ai_agent.rag import Citation
 
 
 class AgentRunRequest(BaseModel):
@@ -126,3 +127,29 @@ class SendMessageResponse(BaseModel):
     conversation_id: str
     user_message: MessageResponse
     assistant_message: MessageResponse
+
+
+class RagQueryRequest(BaseModel):
+    """One question sent directly to the RAG pipeline."""
+
+    model_config = ConfigDict(frozen=True)
+
+    question: str
+
+    @field_validator("question")
+    @classmethod
+    def validate_question(cls, question: str) -> str:
+        """Reject empty questions."""
+
+        if not question.strip():
+            raise ValueError("question must not be empty")
+        return question
+
+
+class RagQueryResponse(BaseModel):
+    """A direct RAG answer with its supporting citations."""
+
+    model_config = ConfigDict(frozen=True)
+
+    answer: str
+    citations: tuple[Citation, ...] = ()
