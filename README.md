@@ -17,6 +17,7 @@ This repository currently provides:
 - a deterministic RAG prompt builder with structured sections
 - immutable RAG answer and citation response models
 - an end-to-end RAG pipeline orchestration
+- a minimal Tool boundary with a RAGPipeline adapter for future agents
 - offline RAG evaluation metrics, JSON datasets, and batch evaluation runner
 - pytest and Ruff configuration
 - GitHub Actions quality checks
@@ -41,6 +42,22 @@ datasets can be loaded from UTF-8 JSON files with optional version metadata.
 It does not use an LLM judge, parallel execution, or an external evaluation
 framework.
 
+The Tool layer currently provides:
+
+```text
+Future Agent
+  ↓
+Tool
+  ↓
+RAGPipeline
+  ↓
+RAGResponse
+```
+
+`Tool` is the stable execution boundary for a future Agent, and `RAGTool`
+adapts the existing `RAGPipeline` without duplicating RAG behavior. The Agent
+itself is not implemented yet.
+
 The LLM layer currently provides:
 
 ```text
@@ -54,8 +71,8 @@ OpenAI-compatible LLM Provider
 `LLMService` is an abstraction over synchronous text generation, and
 `OpenAICompatibleLLMService` adapts it to an injected OpenAI-compatible client.
 
-This is a service abstraction only. There is still no Context Builder, no Prompt
-Builder, no RAG, no Citation handling, and no Agent.
+This is a generation service abstraction only. Agent orchestration is not
+implemented.
 
 ## Development setup
 
@@ -149,6 +166,10 @@ src/enterprise_ai_agent/
     metrics.py
     models.py
     runner.py
+  tools/
+    __init__.py
+    base.py
+    rag.py
 tests/
 docs/
 ```
