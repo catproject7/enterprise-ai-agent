@@ -15,6 +15,7 @@ from enterprise_ai_agent.conversation import (
 )
 from enterprise_ai_agent.llm import UnsupportedToolCallsError
 from enterprise_ai_agent.observability import RequestObservabilityMiddleware
+from enterprise_ai_agent.rag import RAGPipeline
 from enterprise_ai_agent.tools import ToolArgumentError, ToolNotFoundError
 
 from .models import ErrorResponse
@@ -24,6 +25,7 @@ from .routes import router
 def create_app(
     agent: Agent[str] | None = None,
     conversation_store: ConversationStore | None = None,
+    rag_pipeline: RAGPipeline | None = None,
 ) -> FastAPI:
     """Create the API application with optional injected dependencies."""
 
@@ -32,6 +34,7 @@ def create_app(
         version="0.1.0",
     )
     app.state.agent = agent
+    app.state.rag_pipeline = rag_pipeline
     app.state.conversation_store = (
         conversation_store if conversation_store is not None else InMemoryConversationStore()
     )

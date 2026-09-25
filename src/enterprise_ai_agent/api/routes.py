@@ -6,8 +6,9 @@ from fastapi import APIRouter, Depends, status
 
 from enterprise_ai_agent.agent import Agent
 from enterprise_ai_agent.conversation import ConversationService
+from enterprise_ai_agent.rag import RAGPipeline
 
-from .dependencies import get_agent, get_conversation_service
+from .dependencies import get_agent, get_conversation_service, get_rag_pipeline
 from .models import (
     AgentRunRequest,
     AgentRunResponse,
@@ -16,6 +17,8 @@ from .models import (
     ErrorResponse,
     HealthResponse,
     MessageResponse,
+    RagQueryRequest,
+    RagQueryResponse,
     SendMessageRequest,
     SendMessageResponse,
 )
@@ -115,4 +118,26 @@ def send_message(
         conversation_id=conversation.id,
         user_message=MessageResponse.from_domain(user_message),
         assistant_message=MessageResponse.from_domain(assistant_message),
+    )
+
+
+@router.post(
+    "/rag/query",
+    response_model=RagQueryResponse,
+    responses={
+        422: {"model": ErrorResponse, "description": "Invalid request"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+        503: {"model": ErrorResponse, "description": "RAG pipeline is not configured"},
+    },
+)
+def rag_query(
+    request: RagQueryRequest,
+    pipeline: Annotated[RAGPipeline, Depends(get_rag_pipeline)],
+) -> RagQueryResponse:
+    """Run the RAG pipeline and return an answer with citations."""
+
+    response = pipeline.run(request.question)
+    return RagQueryResponse(
+        answer=response.answer.text,
+        citations=response.citations,
     )

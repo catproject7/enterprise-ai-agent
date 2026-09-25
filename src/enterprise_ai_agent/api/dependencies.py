@@ -9,6 +9,7 @@ from enterprise_ai_agent.conversation import (
     ConversationService,
     ConversationStore,
 )
+from enterprise_ai_agent.rag import RAGPipeline
 
 
 def get_agent(request: Request) -> Agent[str]:
@@ -42,3 +43,15 @@ def get_conversation_service(
     """Build the conversation service from injected dependencies."""
 
     return ConversationService(store, agent)
+
+
+def get_rag_pipeline(request: Request) -> RAGPipeline:
+    """Return the configured RAG pipeline or fail closed."""
+
+    pipeline = getattr(request.app.state, "rag_pipeline", None)
+    if pipeline is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="RAG pipeline is not configured",
+        )
+    return pipeline

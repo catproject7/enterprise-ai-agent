@@ -279,11 +279,14 @@ The runtime composition root assembles the existing components into a
 configuration-backed Agent:
 
 - `runtime/composition.py` exposes pure `assemble_agent()` dependency wiring.
+- `runtime/indexing.py` loads local PDF, Markdown, and TXT documents, chunks
+  them, embeds chunks, and writes them into the configured Qdrant collection.
+- `create_runtime_components()` constructs one shared Agent and RAG pipeline.
 - `create_runtime()` constructs embedding, Qdrant, LLM, and tool-calling
   adapters from `AppSettings`.
-- `create_runtime_app()` injects the assembled Agent into the existing FastAPI
-  factory.
-- Existing `create_app()` remains health-only unless an Agent is explicitly
+- `create_runtime_app()` injects the assembled Agent and RAG pipeline into the
+  existing FastAPI factory.
+- Existing `create_app()` remains health-only unless dependencies are explicitly
   injected.
 
 The runtime assembly flow is:
@@ -298,6 +301,11 @@ Retriever → RAGPipeline → RAGTool
 ToolRegistry + ToolCallingLLM → LLMAgent
   ↓
 FastAPI
+
+HTTP API includes:
+
+- `POST /rag/query` for direct RAG answers with structured citations.
+- `POST /agent/run` for Agent and Tool Calling execution.
 ```
 
 ## Module boundaries
