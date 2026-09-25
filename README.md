@@ -20,6 +20,7 @@ This repository currently provides:
 - a minimal Agent foundation for deterministic single-tool execution
 - finite LLM tool calling with one supported tool-call round
 - a FastAPI application foundation for health and Agent execution endpoints
+- an in-memory Conversation persistence foundation
 - a minimal Tool boundary with a RAGPipeline adapter for future agents
 - offline RAG evaluation metrics, JSON datasets, and batch evaluation runner
 - pytest and Ruff configuration
@@ -100,6 +101,21 @@ HTTP Response
 The API layer depends only on the `Agent[str]` abstraction. It does not import
 LLM providers, RAG implementation, vector storage, or tools.
 
+The Conversation layer currently provides:
+
+```text
+FastAPI
+  ↓
+ConversationService
+  ├── ConversationStore
+  └── Agent[str]
+```
+
+`ConversationService` assembles deterministic history input and keeps the Agent
+stateless. `InMemoryConversationStore` stores conversations for the current
+process only; data is lost when the process restarts. A persistent backend can
+replace the store implementation later without changing the Agent contract.
+
 ## Development setup
 
 Prerequisites:
@@ -148,6 +164,9 @@ Available endpoints:
 
 - `GET /health`
 - `POST /agent/run`
+- `POST /conversations`
+- `GET /conversations/{conversation_id}`
+- `POST /conversations/{conversation_id}/messages`
 
 `POST /agent/run` accepts `{"input": "..."}`. The default application has no
 real Agent configured, so it returns `503 Service Unavailable` for this endpoint
@@ -172,6 +191,12 @@ src/enterprise_ai_agent/
     dependencies.py
     models.py
     routes.py
+  conversation/
+    __init__.py
+    exceptions.py
+    models.py
+    service.py
+    store.py
   core/
     __init__.py
     config.py

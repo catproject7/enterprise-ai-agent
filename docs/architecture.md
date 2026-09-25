@@ -221,6 +221,31 @@ The API layer does not depend directly on LLM providers, RAG, vector storage,
 or tool implementations. The default `app = create_app()` has no configured
 Agent; health remains available while Agent execution fails closed.
 
+Issue #18 adds an in-memory Conversation persistence foundation:
+
+- `conversation/models.py` defines immutable Conversation, Message, and
+  MessageRole domain models.
+- `conversation/store.py` defines `ConversationStore` and
+  `InMemoryConversationStore`.
+- `conversation/service.py` assembles deterministic history input, calls the
+  injected Agent, and appends user and assistant messages only after success.
+- API conversation endpoints create, retrieve, and append messages to
+  conversations without exposing the store to HTTP clients.
+
+The Conversation boundary is:
+
+```text
+FastAPI
+  ↓
+ConversationService
+  ├── ConversationStore
+  └── Agent[str]
+```
+
+The Agent remains stateless and `Agent.run(input: str)` is unchanged. Current
+persistence is process-local only and is lost on restart. A persistent backend
+can replace the store implementation later.
+
 ## Module boundaries
 
 New modules should be introduced only when the corresponding issue needs them.
@@ -242,7 +267,8 @@ The expected responsibilities are:
 | RAG | Retrieve context, build prompts, generate answers, and return citations |
 | Tools | Provide stable synchronous capabilities and registration for Agents |
 | API | Expose the abstract Agent through FastAPI without infrastructure coupling |
-| Persistence | Store users, documents, and conversations in PostgreSQL |
+| Conversation | Persist in-memory conversations while keeping Agents stateless |
+| Persistence | Provide a replaceable backend boundary for durable storage |
 | Authentication | Authenticate users and enforce permissions |
 | Agents | Provide deterministic and LLM-driven Agent execution boundaries |
 | Evaluation | Measure retrieval and answer quality against benchmark datasets |
@@ -287,7 +313,9 @@ The initial delivery sequence keeps each issue narrowly scoped:
     implement parallel calls, repeated loops, or autonomous planning.
 14. Issue #17: a minimal FastAPI application with health and Agent execution
     endpoints, injected through the abstract `Agent[str]` contract.
-15. Later issues: citation attribution, observability, persistence,
+15. Issue #18: an in-memory conversation persistence foundation with
+    ConversationService, ConversationStore, and conversation API endpoints.
+16. Later issues: citation attribution, observability, durable persistence,
     authentication, and production hardening.
 
 Hybrid retrieval, BM25, reranking, agents, PostgreSQL,

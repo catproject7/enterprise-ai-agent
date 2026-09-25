@@ -1,5 +1,7 @@
 """Tests for the FastAPI application foundation."""
 
+from uuid import uuid4
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -182,3 +184,110 @@ def test_openapi_describes_request_and_response_models() -> None:
     assert (
         schema["components"]["schemas"]["ErrorResponse"]["properties"]["detail"]["type"] == "string"
     )
+
+
+def test_create_conversation() -> None:
+    client = TestClient(create_app(FakeAgent()))
+
+    response = client.post("/conversations")
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["id"]
+    assert body["created_at"]
+    assert body["updated_at"]
+    assert body["messages"] == []
+
+
+def test_get_conversation() -> None:
+    client = TestClient(create_app(FakeAgent()))
+    conversation = client.post("/conversations").json()
+
+    response = client.get(f"/conversations/{conversation['id']}")
+
+    assert response.status_code == 200
+    assert response.json() == conversation
+
+
+def test_get_missing_conversation() -> None:
+    client = TestClient(create_app(FakeAgent()))
+    conversation_id = uuid4().hex
+
+    response = client.get(f"/conversations/{conversation_id}")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Conversation not found"}
+
+
+def test_send_message_to_conversation() -> None:
+    client = TestClient(create_app(FakeAgent("answer")))
+    conversation = client.post("/conversations").json()
+
+    response = client.post(
+        f"/conversations/{conversation['id']}/messages",
+        json={"content": "question"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["conversation_id"] == conversation["id"]
+    assert body["user_message"]["content"] == "question"
+    assert body["user_message"]["role"] == "user"
+    assert body["assistant_message"]["content"] == "answer"
+    assert body["assistant_message"]["role"] == "assistant"
+
+
+def test_conversation_message_order_and_history() -> None:
+    agent = FakeAgent("answer")
+    client = TestClient(create_app(agent))
+    conversation = client.post("/conversations").json()
+    conversation_id = conversation["id"]
+    client.post(f"/conversations/{conversation_id}/messages", json={"content": "first"})
+    client.post(f"/conversations/{conversation_id}/messages", json={"content": "second"})
+
+    response = client.get(f"/conversations/{conversation_id}")
+
+    assert response.status_code == 200
+    messages = response.json()["messages"]
+    assert [message["content"] for message in messages] == [
+        "first",
+        "answer",
+        "second",
+        "answer",
+    ]
+    assert agent.calls == [
+        "User: first",
+        "User: first\nAssistant: answer\nUser: second",
+    ]
+
+
+def test_send_message_rejects_empty_content() -> None:
+    client = TestClient(create_app(FakeAgent()))
+    conversation = client.post("/conversations").json()
+
+    response = client.post(
+        f"/conversations/{conversation['id']}/messages",
+        json={"content": "   "},
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Invalid request"}
+
+
+def test_agent_failure_does_not_persist_conversation_messages() -> None:
+    client = TestClient(
+        create_app(FakeAgent(error=RuntimeError("agent failed"))),
+        raise_server_exceptions=False,
+    )
+    conversation = client.post("/conversations").json()
+    conversation_id = conversation["id"]
+
+    response = client.post(
+        f"/conversations/{conversation_id}/messages",
+        json={"content": "question"},
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Internal server error"}
+    persisted = client.get(f"/conversations/{conversation_id}").json()
+    assert persisted["messages"] == []

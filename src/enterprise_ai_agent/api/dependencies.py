@@ -1,8 +1,14 @@
 """FastAPI dependencies."""
 
-from fastapi import HTTPException, Request, status
+from typing import Annotated
+
+from fastapi import Depends, HTTPException, Request, status
 
 from enterprise_ai_agent.agent import Agent
+from enterprise_ai_agent.conversation import (
+    ConversationService,
+    ConversationStore,
+)
 
 
 def get_agent(request: Request) -> Agent[str]:
@@ -15,3 +21,24 @@ def get_agent(request: Request) -> Agent[str]:
             detail="Agent is not configured",
         )
     return agent
+
+
+def get_conversation_store(request: Request) -> ConversationStore:
+    """Return the configured conversation store or fail closed."""
+
+    store = getattr(request.app.state, "conversation_store", None)
+    if store is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Conversation store is not configured",
+        )
+    return store
+
+
+def get_conversation_service(
+    agent: Annotated[Agent[str], Depends(get_agent)],
+    store: Annotated[ConversationStore, Depends(get_conversation_store)],
+) -> ConversationService:
+    """Build the conversation service from injected dependencies."""
+
+    return ConversationService(store, agent)
