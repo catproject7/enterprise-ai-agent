@@ -21,6 +21,7 @@ This repository currently provides:
 - finite LLM tool calling with one supported tool-call round
 - a FastAPI application foundation for health and Agent execution endpoints
 - an in-memory Conversation persistence foundation
+- standard-library observability with request IDs and structured events
 - a minimal Tool boundary with a RAGPipeline adapter for future agents
 - offline RAG evaluation metrics, JSON datasets, and batch evaluation runner
 - pytest and Ruff configuration
@@ -116,6 +117,15 @@ stateless. `InMemoryConversationStore` stores conversations for the current
 process only; data is lost when the process restarts. A persistent backend can
 replace the store implementation later without changing the Agent contract.
 
+The Observability layer currently provides:
+
+- request IDs and request timing at the FastAPI boundary
+- standard-library structured log events
+- transparent Agent, LLM, and Tool wrapper instrumentation
+- deterministic EvaluationReport JSON serialization
+
+No OpenTelemetry, Prometheus, Grafana, or Jaeger stack is included.
+
 ## Development setup
 
 Prerequisites:
@@ -197,6 +207,12 @@ src/enterprise_ai_agent/
     models.py
     service.py
     store.py
+  observability/
+    __init__.py
+    context.py
+    instrumentation.py
+    logging.py
+    middleware.py
   core/
     __init__.py
     config.py
@@ -246,6 +262,7 @@ src/enterprise_ai_agent/
     __init__.py
     dataset.py
     evaluator.py
+    export.py
     metrics.py
     models.py
     runner.py

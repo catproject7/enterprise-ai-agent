@@ -14,6 +14,7 @@ from enterprise_ai_agent.conversation import (
     InvalidMessageError,
 )
 from enterprise_ai_agent.llm import UnsupportedToolCallsError
+from enterprise_ai_agent.observability import RequestObservabilityMiddleware
 from enterprise_ai_agent.tools import ToolArgumentError, ToolNotFoundError
 
 from .models import ErrorResponse
@@ -34,6 +35,7 @@ def create_app(
     app.state.conversation_store = (
         conversation_store if conversation_store is not None else InMemoryConversationStore()
     )
+    app.add_middleware(RequestObservabilityMiddleware)
     app.include_router(router)
     _register_exception_handlers(app)
     return app

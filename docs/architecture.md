@@ -246,6 +246,35 @@ The Agent remains stateless and `Agent.run(input: str)` is unchanged. Current
 persistence is process-local only and is lost on restart. A persistent backend
 can replace the store implementation later.
 
+Issue #19 adds a minimal observability foundation:
+
+- `observability/context.py` propagates request IDs without changing business
+  method signatures.
+- `observability/middleware.py` records request lifecycle and duration.
+- `observability/logging.py` emits structured events through standard-library
+  logging and provides a JSON formatter.
+- `observability/instrumentation.py` provides transparent Agent, LLM, and Tool
+  wrappers.
+- `evaluation/export.py` serializes EvaluationReport values as deterministic
+  JSON without adding new evaluation models.
+
+The observability boundary is crossed without changing core contracts:
+
+```text
+FastAPI
+  ↓
+Observability Middleware
+  ↓
+Conversation / TracedAgent
+  ↓
+TracedToolCallingLLM / TracedToolRegistry
+  ↓
+RAGPipeline
+```
+
+Observability uses request IDs, timing, error types, and structured log events.
+It does not include OpenTelemetry, Prometheus, Grafana, or Jaeger.
+
 ## Module boundaries
 
 New modules should be introduced only when the corresponding issue needs them.
@@ -267,6 +296,7 @@ The expected responsibilities are:
 | RAG | Retrieve context, build prompts, generate answers, and return citations |
 | Tools | Provide stable synchronous capabilities and registration for Agents |
 | API | Expose the abstract Agent through FastAPI without infrastructure coupling |
+| Observability | Correlate requests and emit structured events without changing core contracts |
 | Conversation | Persist in-memory conversations while keeping Agents stateless |
 | Persistence | Provide a replaceable backend boundary for durable storage |
 | Authentication | Authenticate users and enforce permissions |
@@ -315,8 +345,10 @@ The initial delivery sequence keeps each issue narrowly scoped:
     endpoints, injected through the abstract `Agent[str]` contract.
 15. Issue #18: an in-memory conversation persistence foundation with
     ConversationService, ConversationStore, and conversation API endpoints.
-16. Later issues: citation attribution, observability, durable persistence,
-    authentication, and production hardening.
+16. Issue #19: request IDs, timing, structured logging, transparent Agent /
+    LLM / Tool wrappers, and deterministic evaluation report serialization.
+17. Later issues: citation attribution, durable persistence, authentication,
+    and production hardening.
 
 Hybrid retrieval, BM25, reranking, agents, PostgreSQL,
 authentication, and permissions belong to later issues and must not be added
