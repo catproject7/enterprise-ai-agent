@@ -53,12 +53,32 @@ class EvaluationCase(BaseModel):
         return value
 
 
+class EvaluationDatasetMetadata(BaseModel):
+    """Portable metadata for a versioned evaluation dataset."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    version: str
+    description: str | None = None
+
+    @field_validator("name", "version")
+    @classmethod
+    def validate_non_empty_metadata(cls, value: str) -> str:
+        """Reject empty dataset metadata values."""
+
+        if not value.strip():
+            raise ValueError("dataset metadata fields must not be empty")
+        return value
+
+
 class EvaluationDataset(BaseModel):
     """A collection of evaluation cases."""
 
     model_config = ConfigDict(frozen=True)
 
     cases: tuple[EvaluationCase, ...]
+    metadata: EvaluationDatasetMetadata | None = None
 
 
 class RetrievalMetrics(BaseModel):
