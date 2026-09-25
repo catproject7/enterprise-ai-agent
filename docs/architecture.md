@@ -116,6 +116,29 @@ Issue #13 adds a portable dataset format and loader:
 Evaluation does not modify production RAG behavior, repeat retrieval, use an LLM
 judge, semantic similarity, an external evaluation framework, a CLI, or a dashboard.
 
+Issue #14 adds a minimal tool boundary:
+
+- `tools/base.py` defines the synchronous `Tool[InputT, OutputT]` abstraction
+  with a stable name, description, and `run()` method.
+- `tools/rag.py` adapts an injected `RAGPipeline` through `RAGTool`.
+- `RAGTool` passes queries and responses through unchanged and does not repeat
+  retrieval, prompting, generation, citation, or validation logic.
+
+The tool boundary is:
+
+```text
+Future Agent
+  ↓
+Tool
+  ↓
+RAGPipeline
+  ↓
+RAGResponse
+```
+
+Agent orchestration, tool registries, tool calling, and multiple tools are not
+implemented.
+
 ## Module boundaries
 
 New modules should be introduced only when the corresponding issue needs them.
@@ -134,6 +157,7 @@ The expected responsibilities are:
 | RAG response | Model final answers and their ordered supporting citations |
 | RAG pipeline | Orchestrate retrieval, prompting, generation, and citations |
 | RAG | Retrieve context, build prompts, generate answers, and return citations |
+| Tools | Provide stable synchronous capabilities for a future Agent |
 | API | Expose application capabilities through FastAPI |
 | Persistence | Store users, documents, and conversations in PostgreSQL |
 | Authentication | Authenticate users and enforce permissions |
@@ -171,7 +195,9 @@ The initial delivery sequence keeps each issue narrowly scoped:
    aggregated reports. This issue is implemented with fail-fast offline execution.
 10. Issue #13: JSON evaluation dataset metadata and loading. This issue is
     implemented without running the RAG pipeline or adding a CLI.
-11. Later issues: citation attribution, observability, agents, APIs, persistence,
+11. Issue #14: a minimal Tool abstraction and `RAGTool` adapter for the future
+    Agent boundary. This issue does not implement Agent orchestration.
+12. Later issues: citation attribution, observability, agents, APIs, persistence,
     authentication, and production hardening.
 
 Hybrid retrieval, BM25, reranking, agents, FastAPI APIs, PostgreSQL,
