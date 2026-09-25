@@ -275,6 +275,31 @@ RAGPipeline
 Observability uses request IDs, timing, error types, and structured log events.
 It does not include OpenTelemetry, Prometheus, Grafana, or Jaeger.
 
+The runtime composition root assembles the existing components into a
+configuration-backed Agent:
+
+- `runtime/composition.py` exposes pure `assemble_agent()` dependency wiring.
+- `create_runtime()` constructs embedding, Qdrant, LLM, and tool-calling
+  adapters from `AppSettings`.
+- `create_runtime_app()` injects the assembled Agent into the existing FastAPI
+  factory.
+- Existing `create_app()` remains health-only unless an Agent is explicitly
+  injected.
+
+The runtime assembly flow is:
+
+```text
+Settings
+  ↓
+EmbeddingService + VectorStore
+  ↓
+Retriever → RAGPipeline → RAGTool
+  ↓
+ToolRegistry + ToolCallingLLM → LLMAgent
+  ↓
+FastAPI
+```
+
 ## Module boundaries
 
 New modules should be introduced only when the corresponding issue needs them.
@@ -297,6 +322,7 @@ The expected responsibilities are:
 | Tools | Provide stable synchronous capabilities and registration for Agents |
 | API | Expose the abstract Agent through FastAPI without infrastructure coupling |
 | Observability | Correlate requests and emit structured events without changing core contracts |
+| Runtime | Assemble configured adapters into a runnable Agent and FastAPI app |
 | Conversation | Persist in-memory conversations while keeping Agents stateless |
 | Persistence | Provide a replaceable backend boundary for durable storage |
 | Authentication | Authenticate users and enforce permissions |
@@ -347,7 +373,9 @@ The initial delivery sequence keeps each issue narrowly scoped:
     ConversationService, ConversationStore, and conversation API endpoints.
 16. Issue #19: request IDs, timing, structured logging, transparent Agent /
     LLM / Tool wrappers, and deterministic evaluation report serialization.
-17. Later issues: citation attribution, durable persistence, authentication,
+17. Runtime composition: configuration-backed assembly of the existing RAG,
+    Tool Calling, Agent, and FastAPI components without changing their contracts.
+18. Later issues: citation attribution, durable persistence, authentication,
     and production hardening.
 
 Hybrid retrieval, BM25, reranking, agents, PostgreSQL,

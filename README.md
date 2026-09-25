@@ -22,6 +22,7 @@ This repository currently provides:
 - a FastAPI application foundation for health and Agent execution endpoints
 - an in-memory Conversation persistence foundation
 - standard-library observability with request IDs and structured events
+- a runtime composition root for assembling the complete Agent stack
 - a minimal Tool boundary with a RAGPipeline adapter for future agents
 - offline RAG evaluation metrics, JSON datasets, and batch evaluation runner
 - pytest and Ruff configuration
@@ -126,6 +127,54 @@ The Observability layer currently provides:
 
 No OpenTelemetry, Prometheus, Grafana, or Jaeger stack is included.
 
+## Runtime Composition
+
+`enterprise_ai_agent.runtime` assembles the existing components into a
+RAG-capable Agent:
+
+```text
+Settings
+  ↓
+EmbeddingService + VectorStore
+  ↓
+Retriever → RAGPipeline → RAGTool
+  ↓
+ToolRegistry + ToolCallingLLM → LLMAgent
+  ↓
+FastAPI
+```
+
+Create a runtime programmatically:
+
+```python
+from enterprise_ai_agent.runtime import create_runtime_app
+
+app = create_runtime_app()
+```
+
+Start the runtime with Uvicorn:
+
+```powershell
+$env:ENTERPRISE_AI_AGENT_LLM_API_KEY = "your-api-key"
+uv run uvicorn enterprise_ai_agent.runtime.composition:create_runtime_app --factory
+```
+
+Runtime settings use these environment variables:
+
+- `ENTERPRISE_AI_AGENT_LLM_MODEL`
+- `ENTERPRISE_AI_AGENT_LLM_API_KEY`
+- `ENTERPRISE_AI_AGENT_LLM_BASE_URL`
+- `ENTERPRISE_AI_AGENT_EMBEDDING_MODEL`
+- `ENTERPRISE_AI_AGENT_EMBEDDING_DIMENSION`
+- `ENTERPRISE_AI_AGENT_EMBEDDING_BATCH_SIZE`
+- `ENTERPRISE_AI_AGENT_EMBEDDING_CACHE_DIR`
+- `ENTERPRISE_AI_AGENT_QDRANT_URL`
+- `ENTERPRISE_AI_AGENT_QDRANT_API_KEY`
+- `ENTERPRISE_AI_AGENT_QDRANT_COLLECTION_NAME`
+
+The default `enterprise_ai_agent.api.app:app` remains health-only and does
+not create an Agent unless one is explicitly injected.
+
 ## Development setup
 
 Prerequisites:
@@ -213,6 +262,9 @@ src/enterprise_ai_agent/
     instrumentation.py
     logging.py
     middleware.py
+  runtime/
+    __init__.py
+    composition.py
   core/
     __init__.py
     config.py
