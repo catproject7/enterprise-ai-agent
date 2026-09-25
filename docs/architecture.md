@@ -86,6 +86,8 @@ The RAG layer currently provides the complete orchestration path:
   source offsets without depending on the full retrieval result.
 - `rag/pipeline.py` orchestrates `Retriever`, `ContextBuilder`, `PromptBuilder`,
   and `LLMService`, then constructs `Answer` and citations from `Context.sources`.
+- `rag/run.py` defines `RAGRun`, a reusable execution trace containing the
+  question, actual retrieval results, and final response.
 
 RAGPipeline does not implement sentence-level citation attribution. Its citations
 represent the retrieval sources included in the prompt for the answer.
@@ -98,8 +100,15 @@ Issue #11 adds an independent offline evaluation layer:
 - `evaluation/evaluator.py` aggregates metrics for already-produced retrieval
   results and RAG responses without calling production components.
 
-Evaluation does not modify RAGPipeline and does not use an LLM judge, semantic
-similarity, an external evaluation framework, or a dashboard in this version.
+Issue #12 adds batch evaluation orchestration:
+
+- `evaluation/runner.py` executes an `EvaluationDataset` through
+  `RAGPipeline.run_with_trace()` and invokes `Evaluator` for each case.
+- `EvaluationReport` contains ordered per-case results and aggregate metrics.
+- The first version is offline, deterministic, dependency-injected, and fail-fast.
+
+Evaluation does not modify production RAG behavior, repeat retrieval, use an LLM
+judge, semantic similarity, an external evaluation framework, or a dashboard.
 
 ## Module boundaries
 
@@ -152,8 +161,10 @@ The initial delivery sequence keeps each issue narrowly scoped:
 8. Issue #11: an offline evaluation foundation for retrieval, answers, and
    citations. This issue is implemented without entering the production RAG
    call chain.
-9. Later issues: citation attribution, observability, agents, APIs, persistence,
-   authentication, and production hardening.
+9. Issue #12: a batch evaluation runner using RAG execution traces and
+   aggregated reports. This issue is implemented with fail-fast offline execution.
+10. Later issues: citation attribution, observability, agents, APIs, persistence,
+    authentication, and production hardening.
 
 Hybrid retrieval, BM25, reranking, agents, FastAPI APIs, PostgreSQL,
 authentication, and permissions belong to later issues and must not be added

@@ -6,6 +6,7 @@ from enterprise_ai_agent.retrieval import Retriever
 from .context import ContextBuilder
 from .prompt import PromptBuilder
 from .response import Answer, Citation, RAGResponse
+from .run import RAGRun
 
 
 class RAGPipeline:
@@ -24,7 +25,12 @@ class RAGPipeline:
         self._llm_service = llm_service
 
     def run(self, question: str) -> RAGResponse:
-        """Run the RAG flow for one question."""
+        """Run the RAG flow and return the final response."""
+
+        return self.run_with_trace(question).response
+
+    def run_with_trace(self, question: str) -> RAGRun:
+        """Run the RAG flow and preserve its retrieval results."""
 
         results = self._retriever.retrieve(question)
         context = self._context_builder.build(results)
@@ -40,5 +46,10 @@ class RAGPipeline:
             )
             for source in context.sources
         )
+        response = RAGResponse(answer=Answer(text=answer_text), citations=citations)
 
-        return RAGResponse(answer=Answer(text=answer_text), citations=citations)
+        return RAGRun(
+            question=question,
+            retrieval_results=tuple(results),
+            response=response,
+        )

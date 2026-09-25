@@ -17,7 +17,7 @@ This repository currently provides:
 - a deterministic RAG prompt builder with structured sections
 - immutable RAG answer and citation response models
 - an end-to-end RAG pipeline orchestration
-- offline RAG evaluation metrics for retrieval, answers, and citations
+- offline RAG evaluation metrics and batch evaluation runner
 - pytest and Ruff configuration
 - GitHub Actions quality checks
 
@@ -35,7 +35,9 @@ prompt construction, and LLM generation into a RAGResponse. Citations represent
 the retrieval sources included in the prompt; sentence-level attribution is not
 implemented. Evaluation is an offline layer outside RAGPipeline and provides
 Recall@K, Precision@K, normalized exact-match Answer correctness, and Citation
-Coverage. It does not use an LLM judge or an external evaluation framework.
+Coverage. EvaluationRunner executes an EvaluationDataset through RAGPipeline,
+evaluates each trace, and returns an aggregated EvaluationReport. It does not
+use an LLM judge, parallel execution, or an external evaluation framework.
 
 The LLM layer currently provides:
 
@@ -143,6 +145,7 @@ src/enterprise_ai_agent/
     evaluator.py
     metrics.py
     models.py
+    runner.py
 tests/
 docs/
 ```

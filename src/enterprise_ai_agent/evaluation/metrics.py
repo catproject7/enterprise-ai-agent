@@ -7,8 +7,10 @@ from enterprise_ai_agent.rag import Citation, RAGResponse
 from enterprise_ai_agent.vector_store import SearchResult
 
 from .models import (
+    AggregateMetrics,
     AnswerCorrectness,
     CitationCoverage,
+    EvaluationResult,
     GroundTruthChunk,
     RetrievalMetrics,
 )
@@ -99,4 +101,23 @@ def calculate_citation_coverage(
         matched_citations=matched_citations,
         expected_citations=expected_citations,
         coverage=coverage,
+    )
+
+
+def aggregate_results(
+    results: Sequence[EvaluationResult],
+) -> AggregateMetrics | None:
+    """Calculate mean metrics across per-case evaluation results."""
+
+    if not results:
+        return None
+
+    case_count = len(results)
+    return AggregateMetrics(
+        case_count=case_count,
+        mean_recall_at_k=sum(result.retrieval.recall_at_k for result in results) / case_count,
+        mean_precision_at_k=sum(result.retrieval.precision_at_k for result in results) / case_count,
+        answer_accuracy=sum(result.answer_correctness.score for result in results) / case_count,
+        mean_citation_coverage=sum(result.citation_coverage.coverage for result in results)
+        / case_count,
     )

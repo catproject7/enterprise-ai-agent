@@ -4,6 +4,7 @@ from .context import Context, ContextBuilder, ContextBuilderConfig, ContextSourc
 from .pipeline import RAGPipeline
 from .prompt import Prompt, PromptBuilder
 from .response import Answer, Citation, RAGResponse
+from .run import RAGRun
 
 __all__ = [
     "Context",
@@ -15,5 +16,6 @@ __all__ = [
     "Answer",
     "Citation",
     "RAGResponse",
+    "RAGRun",
     "RAGPipeline",
 ]
