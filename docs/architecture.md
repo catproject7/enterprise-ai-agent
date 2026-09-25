@@ -136,8 +136,34 @@ RAGPipeline
 RAGResponse
 ```
 
-Agent orchestration, tool registries, tool calling, and multiple tools are not
-implemented.
+The Tool abstraction remains independent of Agent orchestration, tool
+registries, and tool calling.
+
+Issue #15 adds a minimal Agent foundation:
+
+- `agent/base.py` defines the synchronous `Agent[OutputT]` abstraction.
+- `agent/models.py` defines immutable `AgentResult[OutputT]` output.
+- `agent/tool.py` defines `ToolAgent[OutputT]`, which deterministically runs
+  one injected `Tool[str, OutputT]`.
+
+The Agent boundary is:
+
+```text
+User
+  ↓
+Agent
+  ↓
+Tool
+  ↓
+RAGTool
+  ↓
+RAGPipeline
+```
+
+`ToolAgent` depends only on the Tool abstraction and does not know about
+`RAGPipeline` internals. Issue #15 does not implement LLM Tool Calling,
+automatic Tool selection, ToolCall models, or a Tool registry. Issue #16 is
+responsible for LLM-driven Tool selection and invocation.
 
 ## Module boundaries
 
@@ -161,7 +187,7 @@ The expected responsibilities are:
 | API | Expose application capabilities through FastAPI |
 | Persistence | Store users, documents, and conversations in PostgreSQL |
 | Authentication | Authenticate users and enforce permissions |
-| Agents | Orchestrate tools and tool calling |
+| Agents | Provide a replaceable Agent boundary above Tools |
 | Evaluation | Measure retrieval and answer quality against benchmark datasets |
 
 ## Planned delivery sequence
@@ -197,7 +223,9 @@ The initial delivery sequence keeps each issue narrowly scoped:
     implemented without running the RAG pipeline or adding a CLI.
 11. Issue #14: a minimal Tool abstraction and `RAGTool` adapter for the future
     Agent boundary. This issue does not implement Agent orchestration.
-12. Later issues: citation attribution, observability, agents, APIs, persistence,
+12. Issue #15: a minimal Agent abstraction and deterministic single-Tool
+    execution. This issue does not implement LLM Tool Calling.
+13. Later issues: citation attribution, observability, LLM Tool Calling, APIs, persistence,
     authentication, and production hardening.
 
 Hybrid retrieval, BM25, reranking, agents, FastAPI APIs, PostgreSQL,

@@ -17,6 +17,7 @@ This repository currently provides:
 - a deterministic RAG prompt builder with structured sections
 - immutable RAG answer and citation response models
 - an end-to-end RAG pipeline orchestration
+- a minimal Agent foundation for deterministic single-tool execution
 - a minimal Tool boundary with a RAGPipeline adapter for future agents
 - offline RAG evaluation metrics, JSON datasets, and batch evaluation runner
 - pytest and Ruff configuration
@@ -42,21 +43,23 @@ datasets can be loaded from UTF-8 JSON files with optional version metadata.
 It does not use an LLM judge, parallel execution, or an external evaluation
 framework.
 
-The Tool layer currently provides:
+The Agent and Tool layers currently provide:
 
 ```text
-Future Agent
+Agent
   ↓
 Tool
   ↓
-RAGPipeline
+RAGTool
   ↓
-RAGResponse
+RAGPipeline
 ```
 
-`Tool` is the stable execution boundary for a future Agent, and `RAGTool`
-adapts the existing `RAGPipeline` without duplicating RAG behavior. The Agent
-itself is not implemented yet.
+`Agent` defines the execution boundary, and `ToolAgent` deterministically runs
+one injected Tool. `RAGTool` adapts the existing `RAGPipeline` without
+duplicating RAG behavior. This foundation does not include LLM Tool Calling or
+automatic Tool selection; Issue #16 will add LLM-driven Tool selection and
+invocation.
 
 The LLM layer currently provides:
 
@@ -71,8 +74,8 @@ OpenAI-compatible LLM Provider
 `LLMService` is an abstraction over synchronous text generation, and
 `OpenAICompatibleLLMService` adapts it to an injected OpenAI-compatible client.
 
-This is a generation service abstraction only. Agent orchestration is not
-implemented.
+This is a generation service abstraction only. LLM-driven Agent orchestration
+is not implemented.
 
 ## Development setup
 
@@ -159,6 +162,11 @@ src/enterprise_ai_agent/
     pipeline.py
     prompt.py
     response.py
+  agent/
+    __init__.py
+    base.py
+    models.py
+    tool.py
   evaluation/
     __init__.py
     dataset.py
