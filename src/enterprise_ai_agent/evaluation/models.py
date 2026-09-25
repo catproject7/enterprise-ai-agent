@@ -109,3 +109,37 @@ class EvaluationResult(BaseModel):
     retrieval: RetrievalMetrics
     answer_correctness: AnswerCorrectness
     citation_coverage: CitationCoverage
+
+
+class AggregateMetrics(BaseModel):
+    """Aggregate metrics across an evaluation dataset."""
+
+    model_config = ConfigDict(frozen=True)
+
+    case_count: int = Field(gt=0)
+    mean_recall_at_k: float = Field(ge=0.0, le=1.0)
+    mean_precision_at_k: float = Field(ge=0.0, le=1.0)
+    answer_accuracy: float = Field(ge=0.0, le=1.0)
+    mean_citation_coverage: float = Field(ge=0.0, le=1.0)
+
+
+class EvaluationReport(BaseModel):
+    """Aggregate report for an evaluated dataset."""
+
+    model_config = ConfigDict(frozen=True)
+
+    total_cases: int = Field(ge=0)
+    results: tuple[EvaluationResult, ...]
+    aggregate: AggregateMetrics | None = None
+
+    @model_validator(mode="after")
+    def validate_report(self) -> Self:
+        """Keep total case count and aggregate state consistent."""
+
+        if self.total_cases != len(self.results):
+            raise ValueError("total_cases must match results length")
+        if not self.results and self.aggregate is not None:
+            raise ValueError("empty evaluations cannot have aggregate metrics")
+        if self.results and self.aggregate is None:
+            raise ValueError("non-empty evaluations require aggregate metrics")
+        return self

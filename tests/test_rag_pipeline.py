@@ -3,6 +3,7 @@
 from collections.abc import Sequence
 
 import pytest
+from pydantic import ValidationError
 
 from enterprise_ai_agent.chunking import Chunk
 from enterprise_ai_agent.ingestion import DocumentMetadata, DocumentType
@@ -14,6 +15,7 @@ from enterprise_ai_agent.rag import (
     Prompt,
     PromptBuilder,
     RAGPipeline,
+    RAGRun,
 )
 from enterprise_ai_agent.retrieval import Retriever
 from enterprise_ai_agent.vector_store import SearchResult
@@ -341,3 +343,82 @@ def test_pipeline_is_deterministic() -> None:
     )
 
     assert pipeline.run("question") == pipeline.run("question")
+
+
+def test_run_with_trace_returns_execution_trace() -> None:
+    result = _make_result("alpha", result_id="result-1", score=0.9)
+    pipeline = RAGPipeline(
+        retriever=FakeRetriever([result]),
+        context_builder=ContextBuilder(),
+        prompt_builder=PromptBuilder(),
+        llm_service=FakeLLMService("generated answer"),
+    )
+
+    rag_run = pipeline.run_with_trace("What is alpha?")
+
+    assert isinstance(rag_run, RAGRun)
+    assert rag_run.question == "What is alpha?"
+    assert rag_run.retrieval_results == (result,)
+    assert rag_run.response.answer.text == "generated answer"
+
+
+def test_run_with_trace_preserves_context_builder_input() -> None:
+    result = _make_result("alpha", result_id="result-1", score=0.9)
+    context_builder = FakeContextBuilder(_make_context())
+    pipeline = RAGPipeline(
+        retriever=FakeRetriever([result]),
+        context_builder=context_builder,
+        prompt_builder=FakePromptBuilder(Prompt(system="s", context="c", question="q")),
+        llm_service=FakeLLMService("answer"),
+    )
+
+    rag_run = pipeline.run_with_trace("question")
+
+    assert context_builder.received_results == [result]
+    assert rag_run.retrieval_results == (result,)
+
+
+def test_run_uses_trace_without_second_retrieval() -> None:
+    retriever = FakeRetriever([])
+    pipeline = RAGPipeline(
+        retriever=retriever,
+        context_builder=ContextBuilder(),
+        prompt_builder=PromptBuilder(),
+        llm_service=FakeLLMService("answer"),
+    )
+
+    response = pipeline.run("question")
+
+    assert response.answer.text == "answer"
+    assert retriever.calls == ["question"]
+
+
+def test_run_response_matches_run_with_trace_response() -> None:
+    result = _make_result("alpha", result_id="result-1", score=0.9)
+    retriever = FakeRetriever([result])
+    pipeline = RAGPipeline(
+        retriever=retriever,
+        context_builder=ContextBuilder(),
+        prompt_builder=PromptBuilder(),
+        llm_service=FakeLLMService("answer"),
+    )
+
+    trace_response = pipeline.run_with_trace("question").response
+    response = pipeline.run("question")
+
+    assert response == trace_response
+    assert retriever.calls == ["question", "question"]
+
+
+def test_rag_run_is_frozen() -> None:
+    result = _make_result("alpha", result_id="result-1", score=0.9)
+    pipeline = RAGPipeline(
+        retriever=FakeRetriever([result]),
+        context_builder=ContextBuilder(),
+        prompt_builder=PromptBuilder(),
+        llm_service=FakeLLMService("answer"),
+    )
+    rag_run = pipeline.run_with_trace("question")
+
+    with pytest.raises(ValidationError):
+        rag_run.question = "changed"
