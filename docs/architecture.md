@@ -1,5 +1,48 @@
 # Architecture
 
+## System overview
+
+The system separates knowledge ingestion, runtime execution, and supporting
+services. Ingestion writes embedded document chunks to Qdrant. The runtime
+uses the same configured vector store for direct RAG queries and Agent Tool
+Calling.
+
+```mermaid
+flowchart LR
+    subgraph Ingestion["Ingestion"]
+        Document["Document"] --> Chunk["Chunk"]
+        Chunk --> Embedding["Embedding"]
+        Embedding --> IndexedQdrant["Qdrant collection"]
+    end
+
+    subgraph Runtime["Runtime"]
+        FastAPI["FastAPI"] --> Agent["LLMAgent"]
+        Agent --> ToolCalling["ToolCallingLLM"]
+        Agent --> Registry["ToolRegistry"]
+        Registry --> RAGTool["RAGTool"]
+        RAGTool --> RAGPipeline["RAGPipeline"]
+        RAGPipeline --> Retriever["Retriever"]
+        Retriever --> QueryQdrant["Qdrant collection"]
+        RAGPipeline --> LLMService["LLMService"]
+    end
+
+    subgraph Supporting["Supporting systems"]
+        Conversation["ConversationService"] --> FastAPI
+        Observability["Observability"] -.-> FastAPI
+        Evaluation["Evaluation"] -.-> RAGPipeline
+        Composition["Runtime Composition"] -.-> FastAPI
+        Composition -.-> RAGPipeline
+    end
+```
+
+The key execution paths are:
+
+```text
+Document -> Chunk -> Embedding -> Qdrant
+Question -> Retriever -> RAGPipeline -> LLMService -> Answer + Citations
+HTTP -> Agent -> ToolRegistry -> RAGTool -> RAGPipeline -> HTTP
+```
+
 ## Current implementation
 
 Issue #1 establishes a minimal Python application foundation:
@@ -61,7 +104,7 @@ LLM Provider
 `Retriever`, `SearchResult`, `VectorStore`, or Qdrant, so retrieval and
 generation remain independently replaceable.
 
-A future RAG pipeline is expected to compose these boundaries:
+The RAG pipeline composes these boundaries:
 
 ```text
 Retriever
@@ -301,12 +344,12 @@ Retriever → RAGPipeline → RAGTool
 ToolRegistry + ToolCallingLLM → LLMAgent
   ↓
 FastAPI
+```
 
-HTTP API includes:
+The HTTP API includes:
 
 - `POST /rag/query` for direct RAG answers with structured citations.
 - `POST /agent/run` for Agent and Tool Calling execution.
-```
 
 ## Module boundaries
 
